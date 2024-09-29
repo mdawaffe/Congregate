@@ -1,0 +1,7 @@
+.DS_Store
+.access-token
+.oauth
+store
+store.old
+client/checkins.geo.json
+overrides.php
