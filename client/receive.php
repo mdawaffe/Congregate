@@ -1,6 +1,6 @@
 <?php
 
-namespace namespace MDAWaffe\Swarm\API;
+namespace MDAWaffe\Swarm\API;
 
 if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 	http_response_code( 405 );
@@ -48,7 +48,7 @@ require dirname( __DIR__ ) . '/api/index.php';
 
 $store_dir = dirname( __DIR__ ) . '/store';
 
-$access_token = trim( file( dirname( __DIR__ ) . '/.access-token' )[0];
+$access_token = trim( file( dirname( __DIR__ ) . '/.access-token' )[0] );
 $store = new Store_FS( $store_dir );
 
 $user_endpoint = new Endpoint\User( $api, $store );
