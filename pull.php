@@ -21,7 +21,7 @@ require __DIR__ . '/api/index.php';
 
 $all_types = [ 'users', 'checkins', 'venues-liked', 'venues-visited', 'photos', 'curated-lists', 'tips', 'tastes' ];
 $lengthen_eligables = [ 'checkins', 'venues', 'curated-lists', 'tips', 'photos' ];
-$push_types = [ 'checkins' ];
+$push_types = [ 'checkins' => __DIR__ . '/client/pushed-checkins' ];
 
 $store_dir = __DIR__ . '/store';
 if ( ! is_dir( $store_dir ) ) {
@@ -50,13 +50,17 @@ foreach ( $lengthen_eligables as $full_dir ) {
 	}
 }
 
-foreach ( $push_types as $push_dir ) {
-	if ( is_dir( "$store_dir/push/$push_dir" ) ) {
-		continue;
+foreach ( $push_types as $push_dir => $link_target ) {
+	if ( ! is_dir( $link_target ) ) {
+		if ( ! mkdir( $link_target ) ) {
+			throw new Exception( "Could not create $link_target" );
+		}
 	}
 
-	if ( ! mkdir( "$store_dir/push/$push_dir" ) ) {
-		throw new Exception( "Could not create $store_dir/push/$push_dir" );
+	if ( ! is_link( "$store_dir/push/$push_dir" ) ) {
+		if ( ! symlink( $link_target, "$store_dir/push/$push_dir" ) ) {
+			throw new Exception( "Could not create link $store_dir/push/$push_dir -> $link_target" );
+		}
 	}
 }
 
