@@ -1,55 +1,68 @@
-# Run every 64 minutes = 45 jobs over 48 hours
-# There's probably a better way to do this :)
-
 # Your email address here if you want to keep track of what's happening.
 MAILTO=""
 
+# This form ensures that cron jobs only send emails when your command exits with an error.
+# Successful jobs are silent.
+# OUTPUT=`... your command here ...` 2>&1 || echo "$OUTPUT"
+
+# The cron jobs in this example are designed to maximize your use of the rate-limited
+# Foursquare API. They run the sync script every 64 minutes = 45 jobs over 48 hours.
+# There's probably a better way to do this :)
+
+# A simpler cron would just run hourly or daily. For example:
+# 0 * * * * OUTPUT=`php /home/checkins/Congregate/pull.php 2>&1` || echo "$OUTPUT"
+# Hourly or daily should be plenty for most people after the initial sync is complete.
+# (Daily for the initial sync works, but is slow. Hourly for the initial sync works
+# but, because of some timing issues, is probably equivalent to running the sync
+# every two hours, which is ~twice as slow as the example below.)
+
+
 # Run on even days
- 0  0 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
+ 0  0 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
 # Full sync once a day
- 4  1 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php
- 8  2 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-12  3 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-16  4 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-20  5 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-24  6 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-28  7 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-32  8 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-36  9 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-40 10 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-44 11 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-48 12 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-52 13 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-56 14 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
- 0 16 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
- 4 17 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
- 8 18 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-12 19 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-16 20 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-20 21 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-24 22 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
-28 23 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && php /home/checkins/Congregate/pull.php --type=checkins
+ 4  1 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php 2>&1` || echo "$OUTPUT"
+ 8  2 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+12  3 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+16  4 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+20  5 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+24  6 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+28  7 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+32  8 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+36  9 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+40 10 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+44 11 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+48 12 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+52 13 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+56 14 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 0 16 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 4 17 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 8 18 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+12 19 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+16 20 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+20 21 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+24 22 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+28 23 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 0 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
 # Run on odd days
-32  0 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
+32  0 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
 # Full sync once a day
-36  1 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php
-40  2 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-44  3 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-48  4 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-52  5 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-56  6 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
- 0  8 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
- 4  9 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
- 8 10 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-12 11 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-16 12 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-20 13 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-24 14 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-28 15 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-32 16 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-36 17 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-40 18 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-44 19 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-48 20 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-52 21 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
-56 22 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && php /home/checkins/Congregate/pull.php --type=checkins
+36  1 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php 2>&1` || echo "$OUTPUT"
+40  2 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+44  3 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+48  4 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+52  5 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+56  6 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 0  8 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 4  9 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+ 8 10 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+12 11 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+16 12 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+20 13 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+24 14 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+28 15 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+32 16 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+36 17 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+40 18 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+44 19 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+48 20 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+52 21 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
+56 22 * * *	test $(( $( date +\%s ) / 86400 \% 2 )) -eq 1 && OUTPUT=`php /home/checkins/Congregate/pull.php --type=checkins 2>&1` || echo "$OUTPUT"
