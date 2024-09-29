@@ -278,7 +278,7 @@ function overlap_cmp( $a, $b ) {
 	return $a['timestamp'] - $b['timestamp'];
 }
 
-$overrides = require __DIR__ . '/overrides.php';
+$overrides = ( @include(  __DIR__ . '/overrides.php' ) ) ?: [];
 
 $new_mayor_messages = [
 	'New Mayor! That crown looks better on you!' => true,
