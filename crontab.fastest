@@ -11,6 +11,7 @@ MAILTO=""
 
 # A simpler cron would just run hourly or daily. For example:
 # 0 * * * * OUTPUT=`php /home/checkins/Congregate/pull.php 2>&1` || echo "$OUTPUT"
+# Much simpler than the below. Only one job, and no funky calls to `test`.
 # Hourly or daily should be plenty for most people after the initial sync is complete.
 # (Daily for the initial sync works, but is slow. Hourly for the initial sync works
 # but, because of some timing issues, is probably equivalent to running the sync
