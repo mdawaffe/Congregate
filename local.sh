@@ -4,4 +4,5 @@ set -e
 
 php build.php
 
-python3 -m http.server 3333 --directory client/
+php -S localhost:3333 -t client/
+# python3 -m http.server 3333 --directory client/
