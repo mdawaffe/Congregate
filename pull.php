@@ -97,7 +97,7 @@ if ( ! isset( $options['type'] ) ) {
 
 $access_token = trim( file( __DIR__ . '/.access-token' )[ $options['token'] ] );
 if ( ! $access_token ) {
-	echo "ERROR: No access token\n"
+	echo "ERROR: No access token\n";
 	exit( 1 );
 }
 
