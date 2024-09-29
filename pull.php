@@ -84,19 +84,20 @@ $options['lookback'] = (int) ( $options['lookback'] ?? 60 * 60 * 24 * 7 * 2 );
 if ( ! isset( $options['type'] ) ) {
 	$options['type'] = $all_types;
 } elseif ( false === $options['type'] ) {
-	echo "Did you mean type=something?\n";
+	echo "ERROR: Did you mean type=something?\n";
 	exit( 1 );
 } else {
 	$options['type'] = (array) $options['type'];
 	$unknown = array_diff( $options['type'], $all_types );
 	if ( $unknown ) {
-		printf( "Unknown types: %s\n", join( ', ', $unknown ) );
+		printf( "ERROR: Unknown types: %s\n", join( ', ', $unknown ) );
 		exit( 1 );
 	}
 }
 
 $access_token = trim( file( __DIR__ . '/.access-token' )[ $options['token'] ] );
 if ( ! $access_token ) {
+	echo "ERROR: No access token\n"
 	exit( 1 );
 }
 
@@ -145,7 +146,7 @@ function lengthen( $type, $options ) {
 			$endpoint = $GLOBALS['photo_endpoint'];
 			break;
 		default :
-			echo "I do not know how to lengthen $type!\n";
+			echo "ERROR: I do not know how to lengthen $type!\n";
 			exit( 1 );
 	}
 
@@ -259,9 +260,14 @@ function confirm_checkin_descendants( array $checkins ) {
 	}
 }
 
-function retry_output( $retry_at, $command_line_args ) {
-	// Don't specify the date. `at` will figure it out.
-	printf( "%s\nphp %s\n", gmdate( 'H:i \\U\\T\\C', $retry_at + 2 * 60 ), join( ' ', $command_line_args ) );
+function retry_output( $retry_at ) {
+	$with_buffer = retry_at + 2 * 60;
+	printf(
+		"RATE LIMIT EXCEEDED: Try again after %s:\n%s",
+		date( "Y-m-d H:i:s T", $with_buffer ),
+		// Don't specify the date. `at` will figure it out.
+		gmdate( 'H:i \\U\\T\\C', $with_buffer )
+	);
 	exit( 2 );
 }
 
@@ -271,8 +277,9 @@ if ( $options['lengthen-only'] ) {
 	}
 
 	if ( $retry_later > 0 ) {
-		retry_output( $retry_later, $argv );
+		retry_output( $retry_later );
 	}
+	echo "DONE: Lengthening.\n";
 	exit;
 }
 
@@ -470,7 +477,7 @@ if ( $current_types['tastes'] ?? null ) {
 }
 
 if ( $retry_later > 0 ) {
-	retry_output( $retry_later, $argv );
+	retry_output( $retry_later );
 }
 
 if ( $options['confirm-all-checkin-descendants'] ) {
@@ -479,4 +486,7 @@ if ( $options['confirm-all-checkin-descendants'] ) {
 		$checkins = array_map( fn( $id ) => $checkin_endpoint->load_long( $id ), $chunk );
 		confirm_checkin_descendants( $checkins );
 	}
+	echo "DONE: Confirming checkin descendants.\n";
 }
+
+echo "DONE: Everything is up to date.\n";
