@@ -1,6 +1,8 @@
 <?php
 
-namespace MDAWaffe\Swarm\API;
+namespace MDAWaffe\Swarm;
+
+use MDAWaffe\Swarm\API\Store_FS;
 
 if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 	http_response_code( 405 );
@@ -49,6 +51,7 @@ require dirname( __DIR__ ) . '/api/index.php';
 $store_dir = dirname( __DIR__ ) . '/store';
 
 $access_token = trim( file( dirname( __DIR__ ) . '/.access-token' )[0] );
+$api = new API( $access_token );
 $store = new Store_FS( $store_dir );
 
 $user_endpoint = new Endpoint\User( $api, $store );
@@ -61,7 +64,7 @@ if ( ! $user_endpoint->load( (string) $user['id'] ) ) {
 $checkin_id = sprintf( '%s-%s', $checkin['createdAt'], $checkin['id'] );
 
 try {
-	file_put_contents( sprintf( '%s/%s.json', $store_dir, $checkin_id ), json_encode( $checkin, flags: \JSON_THROW_ON_ERROR ) );
+	file_put_contents( sprintf( '%s/pushed-checkins/%s.json', __DIR__, $checkin_id ), json_encode( $checkin, flags: \JSON_THROW_ON_ERROR ) );
 } catch( \JsonException $e ) {
 	http_response_code( 500 );
 	exit;
