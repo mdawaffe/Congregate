@@ -67,16 +67,16 @@ foreach ( $push_types as $push_dir => $link_target ) {
 $options = getopt(
 	'',
 	[
-		'full', // Whether to do a full fetch (--full) or fetch from where we left off last time (default).
-		'lengthen-only', // Whether to only process checkins, venues, etc. that have only a short representation and not a long representation.
+		'all-shorts', // Whether to fetch all short representations (--all-shorts) or fetch from where we left off last time (default).
+		'lengthen-only', // Turns of syncing of new data. Only lengthens checkins, venues, etc. that have only a short representation and not a long representation.
 		'token::', // (int) Which access token to use. 0-indexed line number of ./.access-token. Default = 0.
-		'lookback::', // (int) When not doing a full fetch, number of seconds to look back from where we left off last time. Default = 1209600 (two weeks).
+		'lookback::', // (int) When not doing an all-shorts fetch, number of seconds to look back from where we left off last time. Default = 1209600 (two weeks).
 		'type::',
-		'confirm-all-checkin-descendants',
+		'confirm-all-checkin-descendants', // Ensure that all venues and photos mentioned in *all* stored checkins are synced.
 	]
 );
 
-$options['full'] = isset( $options['full'] );
+$options['all-shorts'] = isset( $options['all-shorts'] );
 $options['confirm-all-checkin-descendants'] = isset( $options['confirm-all-checkin-descendants'] );
 $options['lengthen-only'] = isset( $options['lengthen-only'] );
 $options['token'] = (int) ( $options['token'] ?? 0 );
@@ -298,7 +298,7 @@ if ( $current_types['users'] ?? null ) {
 
 if ( $current_types['venues-visited'] ?? null ) {
 	$venue_visited_options = [
-		'after' => $options['full'] ? null : ( $last_checkin_time - $options['lookback'] ),
+		'after' => $options['all-shorts'] ? null : ( $last_checkin_time - $options['lookback'] ),
 	];
 	$i = -1;
 	$slug = 'no venues visited';
@@ -323,7 +323,7 @@ if ( $current_types['venues-visited'] ?? null ) {
 if ( $current_types['venues-liked'] ?? null ) {
 	$last_venue_liked_time = $venue_liked_endpoint->last_from_store();
 	$venue_liked_options = [
-		'after' => $options['full'] ? null : ( $last_venue_liked_time - $options['lookback'] ),
+		'after' => $options['all-shorts'] ? null : ( $last_venue_liked_time - $options['lookback'] ),
 	];
 	$i = -1;
 	$slug = 'no venues liked';
@@ -349,7 +349,7 @@ if ( $current_types['venues-liked'] ?? null ) {
 if ( $current_types['photos'] ?? null ) {
 	$last_photo_time = $photo_endpoint->last_from_store();
 	$photo_options = [
-		'after' => $options['full'] ? null : ( $last_photo_time - $options['lookback'] ),
+		'after' => $options['all-shorts'] ? null : ( $last_photo_time - $options['lookback'] ),
 	];
 	$i = -1;
 	$slug = 'no photos';
@@ -373,7 +373,7 @@ if ( $current_types['photos'] ?? null ) {
 
 if ( $current_types['checkins'] ?? null ) {
 	$checkin_options = [
-		'after' => $options['full'] ? null : ( $last_checkin_time - $options['lookback'] ),
+		'after' => $options['all-shorts'] ? null : ( $last_checkin_time - $options['lookback'] ),
 	];
 	$i = -1;
 	$slug = 'no checkins';
@@ -436,7 +436,7 @@ if ( $current_types['curated-lists'] ?? null ) {
 if ( $current_types['tips'] ?? null ) {
 	$last_tip_time = $tip_endpoint->last_from_store();
 	$tip_options = [
-		'after' => $options['full'] ? null : ( $last_tip_time - $options['lookback'] ),
+		'after' => $options['all-shorts'] ? null : ( $last_tip_time - $options['lookback'] ),
 	];
 	$i = -1;
 	$slug = 'no tips';
