@@ -272,8 +272,9 @@ For local setups, I suggest using `at`. `./pull-with-retry.sh` is a potentially
 helpful script. Note the comments in that script about how `at` works on MacOS.
 
 For server setups, I suggest using cron. For maximum sync speed, use something
-like the example `crontab.fastest`. After the initial sync, you can use
-a much simpler crontab. E.g., a single hourly or daily entry.
+like the example `crontab.fastest`. After your existing, historical data is
+synced, you can switch to a much simpler crontab to fetch future checkins.
+E.g., a single hourly or daily entry.
 
 Also note that you probably want to run:
 ```
@@ -288,12 +289,12 @@ Real Time Checkin Notifications
 
 This is only available for server setups.
 
-After fully completing the initial sync, you can turn on real time checkin
-notifications. With real time notifications, Foursquare will make an HTTP
-request to your server shortly after each new checkin. The data it sends is not
-the full/long representation of your checkin, nor is it the partial/short
-representation of your checkin discussed above. It's an even smaller/tiny
-representation :)
+After fully syncing your existing, historical data, you can turn on real time
+checkin notifications. With real time notifications, Foursquare will make an
+HTTP request to your server shortly after each new checkin. The data it sends
+is not the full/long representation of your checkin, nor is it the
+partial/short representation of your checkin discussed above. It's an even
+smaller/tiny representation :)
 
 Because of this tiny representation format, real time checkin notifications are
 not super useful: it's simpler to just depend on the cron job you set up to
@@ -304,10 +305,10 @@ contain the exact venue you checked in to.
 
 The Foursquare superuser community will sometimes merge two venues if they are
 likely duplicates. Sometimes that's helpful for your records, sometimes it is
-not. The initial sync of historic data has no access to the original venue you
-checked in to: only the current, potentially merged or otherwise altered venue
-that Foursquare knows about now. This is also an issue (though a less likely
-one) for the cron syncs.
+not. When syncing your existing, historic data, Congregate has no access to the
+original venue you checked in to: only the current, potentially merged or
+otherwise altered venue that Foursquare knows about now. This is also an issue
+(though a less likely one) for the cron syncs.
 
 If you're interested in having a copy of the venue as it existed when you
 checked in to it, real time notifications are the only way to get that data.
@@ -349,20 +350,20 @@ Commands
 
 ### `php pull.php`
 
-Fetches your data. Needs to be run several times initially to get all of your
-existing, historic data. Afterwards, should be run occasionally to fetch your
-new data. (Though see also `./pull-and-build.sh`.)
-
+Fetches your data. Needs to be run several times when first setting up
+Congregate to get all of your existing, historic data. Afterwards, should be
+run occasionally to fetch your new data. (Though see also
+`./pull-and-build.sh`.)
 
 I recommend calling `php pull.php` without any arguments (except possibly the
 `--type` argument when syncing your historical, existing data).
 
 Arguments:
-* `--all-shorts`: Redo the initial sync of all your existing data for the
-  quick partial/short representations only. The slow process for the full/long
-  representations will not be rerun. Afterwards, only the full/long
-  representations that are missing will be fetched. Can be useful if some old
-  checkin was missed for whatever reason.
+* `--all-shorts`: Resync all of your existing data for the quick partial/short
+  representations only. The slow process for the full/long representations will
+  not be rerun. Afterwards, only the full/long representations that are missing
+  will be fetched. Can be useful if some old checkin was missed for whatever
+  reason.
 * `--lengthen-only`: Skip looking for new data and only "lengthen" data that
   already been fetched. Lengthening is the that fetches the full/long
   representation of any checkins and venues that currently only have a
