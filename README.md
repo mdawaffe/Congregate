@@ -358,9 +358,11 @@ I recommend calling `php pull.php` without any arguments (except possibly the
 `--type` argument when syncing your historical, existing data).
 
 Arguments:
-* `--full`: Redo the initial sync of all your existing data. Can be useful if
-  some old checkin was missed for whatever reason. (Badly named - nothing to do
-  with full/long representations.)
+* `--all-shorts`: Redo the initial sync of all your existing data for the
+  quick partial/short representations only. The slow process for the full/long
+  representations will not be rerun. Afterwards, only the full/long
+  representations that are missing will be fetched. Can be useful if some old
+  checkin was missed for whatever reason.
 * `--lengthen-only`: Skip looking for new data and only "lengthen" data that
   already been fetched. Lengthening is the that fetches the full/long
   representation of any checkins and venues that currently only have a
