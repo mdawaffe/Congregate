@@ -455,7 +455,7 @@ A half-baked example of an `at`-based sync solution for the slow process of
 fetching all historical, existing data. See Automated Sync above.
 
 
-### './local.sh'
+### `./local.sh`
 
 Starts a simple and nonperformant local webserver so that you can view your
 checkins in a local (non server) setup.
