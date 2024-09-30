@@ -13,8 +13,9 @@ making its knowledge of your history "live".
 In either case, you will need a Foursquare Developer Project (an OAuth app)
 and an OAuth token. Congregate does not help create either of those :)
 
-Sadly, this is not a click-and-you're-done tool :( Congregate takes some effort
-to set up.
+Congregate is the simplest (to create, not to run), dumbest implementation of a
+Foursquare data fetcher :) It is not fancy. That means it is not a
+click-and-you're-done tool :( Congregate takes some effort to set up.
 
 [1]: https://docs.foursquare.com/developer/reference/personalization-api-overview
 
@@ -23,8 +24,8 @@ Assumptions
 -----------
 
 Congregate makes some assumptions about your knowledge and experience. It
-assumes you are:
-* Comfortable on the command line,
+assumes you:
+* Are comfortable on the command line,
 * Have PHP installed on your machine or server, and
 * For a server setup (as opposed to a local setep), know how to configure a web
   server.
@@ -32,17 +33,12 @@ assumes you are:
 If you don't meet any of those assumptions, you are probably a more interesting
 person that I am :) Sadly, though, Congregate is not smart enough to help you.
 
-<details>
-<summary>
 
 OAuth Setup
 -----------
 
 If you are familiar with the OAuth2 authentication flow, this process will be
 annoying. If you are not familiar, it will be exasperating.
-
-(Click for more details.)
-</summary>
 
 1. Go to https://foursquare.com/developers/home and sign in with your
    Foursquare account.
@@ -82,8 +78,13 @@ annoying. If you are not familiar, it will be exasperating.
    5. Once you've created and saved the `.access-token` file, on
       https://auth.website, click "Go back" and then "Clear".
 
+Now that you have the required access token, Congregate can start making
+requests to the Foursquare API to retrieve your checkins. Before fetching the
+data, you need to decide whether you want to use Congregate as a local script
+or hosted on a server.
+
 [2]: https://auth.website/oauth2/
-</details>
+
 
 Local Script vs. Server Hosted
 ------------------------------
@@ -96,87 +97,66 @@ Local:
 * Con: Harder to view your data.
 * Con: Cannot receive real time updates from Swarm.
 
-Server Pros:
+Server:
 * Pro: Easy to view your data (once it's set up).
 * Pro: Can optionally receive real time updates from Swarm.
-* Con: Harder to set up
+* Con: Requires a server :)
+* Con: Harder to set up.
 * Con: More things to go wrong.
 
-### Local
 
-* Clone this repo to your local machine.
-* Go through the OAuth Setup above.
-* Start the initial sync below.
+### Local Setup
 
-Once the initial sync's first run has completed, you can run:
-`./local.sh`
-then go to `http://localhost:3333` and see most of the data for your checkins.
+1. Clone this repo to your local machine.
+2. Go through the OAuth Setup above.
+3. Complete the Initial Sync steps below.
+4. Run `local.sh` then go to `http://localhost:3333`.
 
-Continue to run the sync command (see below) to retrieve all of your checkins'
-data.
-
-### Server
-
-* Clone this repo to your server.
-* Go through the OAuth Setup above.
-* Configure nginx, Apache, or your webserver of choice.
-  * The docroot should be the `client/` directory of your clone of this repo.
-  * If your server is publically accessible, ensure you have some sort of
-    authentication layer. Basic Authentication (implemented in nginx with
-    `auth_basic` and friends) is the simplest. Note that if you want real
-    time checkin updates from Foursquare, you'll need to exclude
-    `receive.php` (or whatever custom URL you choose) in the authentication
-    configuration. See below for more information about real time updates.
-  * Configure your webserver to gzip or otherwise compress the JSON files it
-    servers. Congregate serves your checkin data as one (very) large JSON
-    file. Without compression, some browsers will not cache the request, and
-    viewing your data will be slow. In nginx, the following is a reasonable
-    place to start:
-    ```
-    gzip on;
-	gzip_min_length 1024;
-	gzip_comp_level 9;
-	gzip_types application/json;
-	gzip_vary on;
-	gzip_proxied any;
-	```
-* Start the initial sync below.
-
-Once the initial sync's first run has completed, you'll need to build the
-data for the website. (`./local.sh` above does this for local sites. For server
-sites, we need to set it up separately.)
-
-To build, run `php build.php`. That's it :)
-
-Instead of running `php pull.php` (either manually, or in a cron job), you can
-run `./pull-and-build.sh`, which will combine the syncing and building steps
-for you.
-
-Once the initial sync and build are done, you can see your checkins at whatever
-URL you chose for your webserver.
-
-Continue to run the sync command (see below) and the build step (see above) to
-retrieve the full representation of all your current and future checkins.
-You'll probably want to automate this with cron.
+At this point, you should see most of the data for your checkins. The initial
+sync is not able to fetch *all* of the data, though. To complete the sync
+process, see Continued Sync below.
 
 
-Run Congregate to Sync your Data
---------------------------------
+### Server Setup
 
-Now that you have the required access token, Congregate can start making
-requests to the Foursquare API to retrieve your checkins. Because of
-Foursquare's API rate limiting, this make take a long time. Foursquare only
-allows you to download ~500 checkins per hour.
+1. Clone this repo to your server.
+2. Go through the OAuth Setup above.
+3. Configure nginx, Apache, or your webserver of choice.
+   * The docroot should be the `client/` directory of your clone of this repo.
+   * If your server is publically accessible, ensure you have some sort of
+     authentication layer. Basic Authentication (implemented in nginx with
+     `auth_basic` and friends) is the simplest. Note that if you want real
+     time checkin updates from Foursquare, you'll need to exclude
+     `receive.php` (or whatever custom URL you choose) in the authentication
+     configuration. See below for more information about real time updates.
+   * Configure your webserver to gzip or otherwise compress the JSON files it
+     serves. Congregate serves your checkin data as one (very) large JSON file.
+     Without compression, some browsers will not cache the request, and viewing
+     your data will be slow. In nginx, the following is a reasonable place to
+     start:
+     ```
+     gzip on;
+     gzip_min_length 1024;
+     gzip_comp_level 9;
+     gzip_types application/json;
+     gzip_vary on;
+     gzip_proxied any;
+     ```
+4. Complete the Initial Sync below.
+5. Run `php build.php` to build the data for the website. (In the Local Setup
+   instructions above, `./local.sh` above does this step for you. For server
+   sites, you need to run the build step separately.)
+6. Go to your site's URL.
 
-In an ideal scenario where everything is fully automated, an account with
-10,000 checkins will take nearly **24 hours** to sync.
+At this point, you should see most of the data for your checkins. The initial
+sync is not able to fetch *all* of the data, though. To complete the sync
+process, see Continued Sync below.
 
-### Manual Sync
 
-Run `php pull.php` at most once an hour (really, about once every 65 minutes).
+Initial Sync
+------------
 
-The first time you run `php pull.php`, it will take a while to run. During that
-first sync, Congregate will _likely_ be able to download:
+Congregate's initial sync will _likely_ be able to download:
 * Your user account details,
 * _Some_ of the data for all of the venues you've visited,
 * _Some_ of the data for all of the venues you've liked,
@@ -190,32 +170,113 @@ I say "likely" because it depends on how many Swarm checkins you've made. If
 you've made fewer than ~50,000 checkins, this first sync should be able to
 complete the above list.
 
-If you get any errors, it's probably because the Foursquare API glitched. Just
-rerun `php pull.php` again and Congregate should be able to pick up where it
-left off.
+If the initial sync does not get all the checkins, Continued Sync (below) will.
 
-Note that that first sync only gets "some" of the data for venues and checkins.
-This is just the way the Foursquare API works: a partial representation of your
-venues and checkins is available reasonably quickly. A full representation
-takes longer to retrieve not because it's large, but because of Foursquare's
-API rate limits.
+To start the initial sync, run:
+```
+php pull.php
+```
 
-Because the first run is only able to get a partial representation of your
-checkins and venues, you'll initially be able to see most of the data for your
-checkins but not all. To get all of your data, keep running `php pull.php`
-about once every 65 minutes until its done. (Obviously, you can run this less
-often than that. More often, though, will not help.)
+The initial sync will take several minutes. It will show some output about what
+it's doing, but there's no progress bar to help estimate when it will finish.
+
+When it finishes, it should output one of:
+* `DONE` - In this case, the initial sync is completed.
+* `ERROR` - Congregate is not configured correctly. You'll need to fix whatever
+  it's complaining about.
+* `RATE LIMIT EXCEEDED` - This is fine. Either:
+  1. The initial sync completed and Congregate moved on to Continued Sync, or
+  2. You have so many checkins that the initial sync can't finish in one run.
+  In either case, Contined Sync (see below) will pick up where Congregate left
+  off.
+
+It's also possible you'll see some ugly PHP errors. If you do, it's probably
+because the Foursquare API glitched. Just rerun `php pull.php` and Congregate
+will pick up where it left off.
+
+
+Continued Sync
+--------------
+
+The initial sync is able to fetch most of your checkins' data but not all. This
+is a constraint of the Foursquare API: the initial sync can fetch your checkins
+and their venues quickly, but the response the Foursquare API returns for each
+checkin and venue is only a partial representation. To get the full
+representation, Congregate must fetch additional data for each checkin and
+venue.
+
+That's what the continued sync process does: fetch the additional data.
+Additionally, Continued sync is also used to fetch any future Swarm checkins
+you make: you need to *continue* to run this sync process to keep up with your
+new data.
+
+Because of Foursquare's API rate limiting, continued sync for your existing
+checkins may take a long time. The API only allows Congregate to download ~500
+checkins per hour.
+
+In an ideal scenario where everything is fully automated, an account with
+10,000 checkins will take **most of a day** to fully sync. After continued sync
+has caught up with your existing checkins, future syncs will be pretty fast
+since they'll only need to fetch any new checkins.
+
+Continued sync can be run manually or can be automated.
+
+
+### Manual Sync
+
+Simple. Run:
+```
+php pull.php
+```
+
+The command for continued sync is the same as the one for initial sync.
+
+As above, the command should output one of:
+* `DONE` - You are done. Rerun the script every once in a while to sync your
+  new checkins.
+* `ERROR` - You need to fix something.
+* `RATE LIMIT EXCEEDED` - Congregate could not get all your data this run. Keep
+  running `php pull.php` until you see `DONE`. **BUT**! You can only run it
+  about once an hour. (Once every 65 minutes is about as fast as the Foursquare
+  API will allow.)
+
+After each `php pull.php` (regardless of whether or not it outputs `DONE`), you
+can run:
+```
+php build.php
+```
+
+That will rebuild the data for the website with the newly synced updates.
+
+Instead of calling `php pull.php` and `php build.php` separately, you can also
+call:
+```
+./pull-and-build.sh
+```
+which will do both steps in one command.
+
+Manual Sync is simple, but annoying since you have to remember to keep running
+`php pull.php`. Automated sync takes care of that for you, but can be pretty
+annoying to set up.
+
 
 ### Automated Sync
 
 You're mostly on your own here :)
 
-For local setups, I suggest using `at`. `pull-with-retry.sh` is a potentially
+For local setups, I suggest using `at`. `./pull-with-retry.sh` is a potentially
 helpful script. Note the comments in that script about how `at` works on MacOS.
 
 For server setups, I suggest using cron. For maximum sync speed, use something
 like the example `crontab.fastest`. After the initial sync, you can use
-a simpler crontab. E.g., a single hourly or daily entry.
+a much simpler crontab. E.g., a single hourly or daily entry.
+
+Also note that you probably want to run:
+```
+./pull-and-build.sh
+```
+instead of `php pull.php` since the former both syncs and rebuilds the website
+data.
 
 
 Real Time Checkin Updates
@@ -253,7 +314,7 @@ checked in to it, real time updates are the only way to get that data.
    accessible (no auth restrictions) at a URL of your choice (likely
    `https://wherever-your-congregate-site-is-hosted/receive.php`).
    You can test your URL by doing a normal GET request. A `405` response
-   means it's set up correctly. Any other error code means something is
+   means it's set up *correctly*. Any other status code means something is
    wrong.
 4. Go to your Foursquare Developer Project at
    https://foursquare.com/developers/home
@@ -262,17 +323,16 @@ checked in to it, real time updates are the only way to get that data.
 7. Use the push URL you opened up in step 3.
 8. For "Push Version", enter the current date in the format requested (`YYYYMMDD`).
 9. Click Save.
-
-You can now click the "Open Push Console" link.
-* Sending a test push should fail since the fake user data it sends does not
-  match the user account (yours) that Congregate expects.
-* Get your Foursquare User ID from `store/users/[YOUR_USER_ID].json`.
-* Enter that ID into the "Resend last push from user" field and click
-  "Resend". The push should go through successfully.
-* Check your server's `client/pushed-checkins/`. You should see one file
-  corresponding to the push you just triggered. (Note that Congregation stores
-  checkins by their ID so pushing the "Resend" button multiple times will not
-  produce multiple files in `client/pushed-checkins/`.)
+10. Click the "Open Push Console" link.
+11. Sending a test push should fail since the fake user data it sends does not
+    match the user account (yours) that Congregate expects.
+12. Get your Foursquare User ID from `store/users/[YOUR_USER_ID].json`.
+13. Enter that ID into the "Resend last push from user" field and click
+    "Resend". The push should go through successfully.
+14. Check your server's `client/pushed-checkins/`. You should see one file
+    corresponding to the push you just triggered. (Note that Congregate stores
+    checkins by their ID so pushing the "Resend" button multiple times will not
+    produce multiple files in `client/pushed-checkins/`.)
 
 If the above all checks out, your server should receive a similar push for each
 new checkin of yours. The cron job is still important to fetch the full
