@@ -7,8 +7,8 @@ Congregate uses the [Foursquare Personalization API][1] to download your Swarm
 history.
 
 This tool can be run as a script locally or run as a service on a server. In
-the latter case, Congregate can receive real time checkin updates from Swarm
-making its knowledge of your history "live".
+the latter case, Congregate can receive real time checkin notifications from
+Swarm making its knowledge of your history "live".
 
 In either case, you will need a Foursquare Developer Project (an OAuth app)
 and an OAuth token. Congregate does not help create either of those :)
@@ -95,11 +95,11 @@ Local:
 * Pro: Easier to set up.
 * Pro: Your Foursquare/Swarm data never leaves your machine. Security!
 * Con: Harder to view your data.
-* Con: Cannot receive real time updates from Swarm.
+* Con: Cannot receive real time notifications from Swarm.
 
 Server:
 * Pro: Easy to view your data (once it's set up).
-* Pro: Can optionally receive real time updates from Swarm.
+* Pro: Can optionally receive real time notifications from Swarm.
 * Con: Requires a server :)
 * Con: Harder to set up.
 * Con: More things to go wrong.
@@ -110,7 +110,10 @@ Server:
 1. Clone this repo to your local machine.
 2. Go through the OAuth Setup above.
 3. Complete the Initial Sync steps below.
-4. Run `local.sh` then go to `http://localhost:3333`.
+4. Run `./local.sh` then go to `http://localhost:3333`.
+
+(Running `./local.sh` may cause your computer to ask if you want to allow
+PHP to accept incoming connections. For this purpose, yes, you do.)
 
 At this point, you should see most of the data for your checkins. The initial
 sync is not able to fetch *all* of the data, though. To complete the sync
@@ -126,9 +129,10 @@ process, see Continued Sync below.
    * If your server is publically accessible, ensure you have some sort of
      authentication layer. Basic Authentication (implemented in nginx with
      `auth_basic` and friends) is the simplest. Note that if you want real
-     time checkin updates from Foursquare, you'll need to exclude
+     time checkin notifications from Foursquare, you'll need to exclude
      `receive.php` (or whatever custom URL you choose) in the authentication
-     configuration. See below for more information about real time updates.
+     configuration. See below for more information about real time
+     notifications.
    * Configure your webserver to gzip or otherwise compress the JSON files it
      serves. Congregate serves your checkin data as one (very) large JSON file.
      Without compression, some browsers will not cache the request, and viewing
@@ -201,7 +205,7 @@ Continued Sync
 The initial sync is able to fetch most of your checkins' data but not all. This
 is a constraint of the Foursquare API: the initial sync can fetch your checkins
 and their venues quickly, but the response the Foursquare API returns for each
-checkin and venue is only a partial representation. To get the full
+checkin and venue is only a partial/short representation. To get the full/long
 representation, Congregate must fetch additional data for each checkin and
 venue.
 
@@ -279,23 +283,24 @@ instead of `php pull.php` since the former both syncs and rebuilds the website
 data.
 
 
-Real Time Checkin Updates
--------------------------
+Real Time Checkin Notifications
+-------------------------------
 
 This is only available for server setups.
 
 After fully completing the initial sync, you can turn on real time checkin
-updates. With real time updates, Foursquare will make an HTTP request to your
-server shortly after each new checkin. The data it sends is not the full
-representation of your checkin, nor is it the partial representation of your
-checkin discussed above. It's an even smaller representation :)
+notifications. With real time notifications, Foursquare will make an HTTP
+request to your server shortly after each new checkin. The data it sends is not
+the full/long representation of your checkin, nor is it the partial/short
+representation of your checkin discussed above. It's an even smaller/tiny
+representation :)
 
-Because of this tiny representation format, real time checkin updates are not
-super useful: it's simpler to just depend on the cron job you set up to keep
-your data fresh.
+Because of this tiny representation format, real time checkin notifications are
+not super useful: it's simpler to just depend on the cron job you set up to
+keep your data fresh.
 
-There is one reason real time updates are interesting: they always contain
-the exact venue you checked in to.
+There is one reason real time notifications are interesting: they always
+contain the exact venue you checked in to.
 
 The Foursquare superuser community will sometimes merge two venues if they are
 likely duplicates. Sometimes that's helpful for your records, sometimes it is
@@ -305,7 +310,7 @@ that Foursquare knows about now. This is also an issue (though a less likely
 one) for the cron syncs.
 
 If you're interested in having a copy of the venue as it existed when you
-checked in to it, real time updates are the only way to get that data.
+checked in to it, real time notifications are the only way to get that data.
 
 ### Setup
 1. Make sure `client/pushed-checkins` is writable by your webserver.
@@ -335,5 +340,160 @@ checked in to it, real time updates are the only way to get that data.
     produce multiple files in `client/pushed-checkins/`.)
 
 If the above all checks out, your server should receive a similar push for each
-new checkin of yours. The cron job is still important to fetch the full
+new checkin of yours. The cron job is still important to fetch the full/long
 representation of your checkins.
+
+
+Commands
+--------
+
+### `php pull.php`
+
+Fetches your data. Needs to be run several times initially to get all of your
+existing, historic data. Afterwards, should be run occasionally to fetch your
+new data. (Though see also `./pull-and-build.sh`.)
+
+
+I recommend calling `php pull.php` without any arguments (except possibly the
+`--type` argument when syncing your historical, existing data).
+
+Arguments:
+* `--full`: Redo the initial sync of all your existing data. Can be useful if
+  some old checkin was missed for whatever reason. (Badly named - nothing to do
+  with full/long representations.)
+* `--lengthen-only`: Skip looking for new data and only "lengthen" data that
+  already been fetched. Lengthening is the that fetches the full/long
+  representation of any checkins and venues that currently only have a
+  partial/short representation.
+* `--token=N`: Use the `N`th line (starting at `0`) of the `.access-token` file
+  to access the Foursquare API. Advanced use only. (You can, in theory, use
+  multiple Foursquare Developer Projects and one access token from each to
+  speed up the fetching of your historical, existing data. It's usually not
+  worth the hassle.)
+* `--lookback=N`: When syncing, Congregate doesn't just fetch any new data it
+  has not yet fetched, it also re-fetches the most recent `N` seconds of
+  checkins. By default, `N` is `1209600`, which is two weeks. Congregate
+  re-fetches the recent checkins to look for new comments, likes, shout
+  updates, etc.
+* `--type=TYPE`: Type is one of:
+  * `users` - your user data,
+  * `checkins` - your checkins,
+  * `venues-liked` - the list of venues you've liked in Foursquare,
+  * `venues-visited` - all the venues you've checked in to,
+  * `photos` - all the photos you've posted to your checkins,
+  * `curated-lists` - the lists of venues you've created or follow on
+    Foursquare,
+  * `tips` - your Foursquare tips, or
+  * `tastes` - your Foursquare tastes.
+  `--type=TYPE` can be used multiple times in one command:
+  `php pull.php --type=checkins --type=photos`
+* `--confirm-all-checkin-descendants`: Mostly useful when developing
+  Congregate. This will loop through all known checkins and ensure Congregate
+  has the venue and all photos associated with each checkin.
+
+
+### `php build.php`
+
+Looks at all the stored checkins, and builds a consolidated
+`client/checkins.geo.json` file for use by the website.
+
+When building, Congregate will first look for the full/long representations of
+your checkins and fall back to the partial/short or push/tiny representations
+if the full/long ones don't yet exist (i.e., if they have not yet been synced).
+
+No arguments, though it will also read `./overrides.php`, which can be used to
+override certain data for specific checkins. For example, if Foursquare has a
+misspelled city name for a venue, your `overrides.php` file might look
+something like
+```php
+<php
+
+return [
+	'52398749ca232809bfd13ea2' => [
+		'location' => [
+			'city' => 'Pasadena',
+		],
+	],
+];
+```
+
+Note that the array in `overrides.php` is indexed by *checkin* ID not venue ID,
+which can be annoying :)
+
+Also note that Congregate uses an strange format for states. For countries for
+which states have a canonical abbreviation (like the US, Canada, and Germany),
+states look like:
+```
+'state' => [
+	'id' => $abbreviation,
+	'name' => $full_name,
+]
+```
+
+But for other countries, states look like:
+```
+'state' => [
+	'id' => $full_name,
+	'name' => null,
+]
+```
+
+The field in which the full name of the state is stored changes!
+
+
+### `./pull-and-build.sh`
+
+Combines `php pull.php` and `php build.php`. Accepts all arguments that
+`php pull.php` accepts.
+
+
+### `./pull-with-retry.sh`
+
+A half-baked example of an `at`-based sync solution for the slow process of
+fetching all historical, existing data. See Automated Sync above.
+
+
+### './local.sh'
+
+Starts a simple and nonperformant local webserver so that you can view your
+checkins in a local (non server) setup.
+
+
+### `php fetch.php`
+
+Fetches one object (checkin, venue, etc.) from the Foursquare API. Outputs the
+result but does not store it.
+
+```
+php fetch.php TYPE ID
+```
+
+Arguments:
+* `--token=N`: Advanced use only. See `php pull.php` arguments above.
+
+
+### `./dayone-import.sh`
+
+An in-progress experiment with exporting Congregate data to [Day One][3].
+
+```
+./dayone-import.sh FILE [...FILE]
+```
+
+Arguments:
+* `--json-only`: Don't build the full ZIP with photos. Only output the JSON
+  file.
+
+[3]: https://dayoneapp.com/
+
+
+Storage
+-------
+
+* `store/` : Partial/short representations of checkins, venues (both liked and
+  visited), tips, and curated lists. Photo JSON files. The only representations
+  of users and tastes.
+* `store/full/`: Full/long representations of checkins, venues (both liked and
+  visited), tips, and curated lists. Photo image files.
+* `store/push/checkins -> client/pushed-checkins`: Pushed/tiny representations
+  of any real time checkin notifications.

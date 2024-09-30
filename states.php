@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * A list of (just a few) countries and their states.
+ * Full Name => ID
+ *
+ * Also includes a few corrections for typos present in some Foursquare venues.
+ *
+ * Used by build.php.
+ */
+
 return [
 	'United States' => [
 		'Alabama' => 'AL',
