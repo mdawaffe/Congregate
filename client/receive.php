@@ -65,7 +65,7 @@ $checkin_id = sprintf( '%s-%s', $checkin['createdAt'], $checkin['id'] );
 
 try {
 	$json = json_encode( $checkin, flags: \JSON_THROW_ON_ERROR );
-	$push_file = sprintf( '%s/pushed-checkins/%s.json', __DIR__, $checkin_id );
+	$push_file = sprintf( '%s/checkins/pushed/%s.json', __DIR__, $checkin_id );
 	file_put_contents( $push_file, $json );
 
 	if ( function_exists( '\\fastcgi_finish_request' ) ) {

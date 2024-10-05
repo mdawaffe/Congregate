@@ -21,7 +21,7 @@ require __DIR__ . '/api/index.php';
 
 $all_types = [ 'users', 'checkins', 'venues-liked', 'venues-visited', 'photos', 'curated-lists', 'tips', 'tastes' ];
 $lengthen_eligables = [ 'checkins', 'venues', 'curated-lists', 'tips', 'photos' ];
-$push_types = [ 'checkins' => __DIR__ . '/client/pushed-checkins' ];
+$push_types = [ 'checkins' => __DIR__ . '/client/checkins/pushed/' ];
 
 $store_dir = __DIR__ . '/store';
 if ( ! is_dir( $store_dir ) ) {

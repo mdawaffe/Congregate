@@ -314,31 +314,34 @@ If you're interested in having a copy of the venue as it existed when you
 checked in to it, real time notifications are the only way to get that data.
 
 ### Setup
-1. Make sure `client/pushed-checkins` is writable by your webserver.
-2. Make sure `store/push/checkins` is a symlink to `client/pushed-checkins`.
-3. Configure your webserver such that `client/receive.php` is publically
+1. Make sure the `client/checkins/` directory exists and is writable by your
+   webserver.
+2. Make sure the `client/checkins/pushed/` directory exists and is writable by
+   your webserver.
+3. Make sure `store/push/checkins` is a symlink to `client/checkins/pushed`.
+4. Configure your webserver such that `client/receive.php` is publically
    accessible (no auth restrictions) at a URL of your choice (likely
    `https://wherever-your-congregate-site-is-hosted/receive.php`).
    You can test your URL by doing a normal GET request. A `405` response
    means it's set up *correctly*. Any other status code means something is
    wrong.
-4. Go to your Foursquare Developer Project at
+5. Go to your Foursquare Developer Project at
    https://foursquare.com/developers/home
-5. In the project's settings, find the "Push API" section.
-6. Update "Push Notifications" to "Push checkins by this project's users"
-7. Use the push URL you opened up in step 3.
-8. For "Push Version", enter the current date in the format requested (`YYYYMMDD`).
-9. Click Save.
-10. Click the "Open Push Console" link.
-11. Sending a test push should fail since the fake user data it sends does not
+6. In the project's settings, find the "Push API" section.
+7. Update "Push Notifications" to "Push checkins by this project's users"
+8. Use the push URL you opened up in step 3.
+9. For "Push Version", enter the current date in the format requested (`YYYYMMDD`).
+10. Click Save.
+11. Click the "Open Push Console" link.
+12. Sending a test push should fail since the fake user data it sends does not
     match the user account (yours) that Congregate expects.
-12. Get your Foursquare User ID from `store/users/[YOUR_USER_ID].json`.
-13. Enter that ID into the "Resend last push from user" field and click
+13. Get your Foursquare User ID from `store/users/[YOUR_USER_ID].json`.
+14. Enter that ID into the "Resend last push from user" field and click
     "Resend". The push should go through successfully.
-14. Check your server's `client/pushed-checkins/`. You should see one file
+15. Check your server's `client/checkins/pushed/`. You should see one file
     corresponding to the push you just triggered. (Note that Congregate stores
     checkins by their ID so pushing the "Resend" button multiple times will not
-    produce multiple files in `client/pushed-checkins/`.)
+    produce multiple files in `client/checkins/pushed/`.)
 
 If the above all checks out, your server should receive a similar push for each
 new checkin of yours. The cron job is still important to fetch the full/long
@@ -507,5 +510,5 @@ Storage
   of users and tastes.
 * `store/full/`: Full/long representations of checkins, venues (both liked and
   visited), tips, and curated lists. Photo image files.
-* `store/push/checkins -> client/pushed-checkins`: Pushed/tiny representations
+* `store/push/checkins -> client/checkins/pushed`: Pushed/tiny representations
   of any real time checkin notifications.

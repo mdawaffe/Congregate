@@ -276,7 +276,7 @@ function overlap_cmp( $a, $b ) {
 function build( $source_files = null ) {
 	global $countries;
 
-	$file = sprintf( '%s/client/checkins.geo.json', __DIR__ );
+	$file = sprintf( '%s/client/checkins/checkins.geo.json', __DIR__ );
 
 	$working_file = "{$file}.work";
 
