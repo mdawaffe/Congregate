@@ -1,5 +1,5 @@
 (function(window, document, history) {
-	const checkins = fetch( './checkins.geo.json' );
+	const checkins = fetch( './checkins/checkins.geo.json' );
 	let checkinData;
 
 	const outputCheckins = document.getElementById( 'stats-checkins' );
