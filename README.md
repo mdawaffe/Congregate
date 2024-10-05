@@ -410,7 +410,7 @@ Arguments:
 ### `php build.php`
 
 Looks at all the stored checkins, and builds a consolidated
-`client/checkins.geo.json` file for use by the website.
+`client/checkins/checkins.geo.json` file for use by the website.
 
 When building, Congregate will first look for the full/long representations of
 your checkins and fall back to the partial/short or push/tiny representations
