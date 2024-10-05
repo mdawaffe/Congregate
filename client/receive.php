@@ -64,7 +64,17 @@ if ( ! $user_endpoint->load( (string) $user['id'] ) ) {
 $checkin_id = sprintf( '%s-%s', $checkin['createdAt'], $checkin['id'] );
 
 try {
-	file_put_contents( sprintf( '%s/pushed-checkins/%s.json', __DIR__, $checkin_id ), json_encode( $checkin, flags: \JSON_THROW_ON_ERROR ) );
+	$json = json_encode( $checkin, flags: \JSON_THROW_ON_ERROR );
+	$push_file = sprintf( '%s/pushed-checkins/%s.json', __DIR__, $checkin_id );
+	file_put_contents( $push_file, $json );
+
+	if ( function_exists( '\\fastcgi_finish_request' ) ) {
+		fastcgi_finish_request();
+	}
+
+	require dirname( __DIR__ ) . '/build.php';
+
+	build( [ $push_file ] );
 } catch( \JsonException $e ) {
 	http_response_code( 500 );
 	exit;
