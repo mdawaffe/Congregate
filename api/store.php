@@ -7,7 +7,7 @@ namespace MDAWaffe\Swarm\API;
 abstract class Store {
 	abstract public function load( string $table, string $id ): ?array;
 
-	abstract public function store( string $table, string $id, array $item ): bool;
+	abstract public function store( string $table, string $id, array $item ): ?bool;
 
 	abstract public function load_long( string $table, string $id );
 

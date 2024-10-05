@@ -23,7 +23,7 @@ abstract class Item {
 		return $this->store->load( static::TABLE, $id );
 	}
 
-	function store( string $id, array $item ): bool {
+	function store( string $id, array $item ): ?bool {
 		return $this->store->store( static::TABLE, $id, $item );
 	}
 

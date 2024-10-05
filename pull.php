@@ -116,11 +116,15 @@ $tip_endpoint = new Endpoint\Tip( $api, $store );
 
 $retry_later = 0;
 
-function lengthen( $type, $options ) {
+function lengthen( $type, $extra_ids = [] ) {
+	if ( 'venues' === $type ) {
+		return lengthen( 'venues-liked' ) && lengthen( 'venues-visited' );
+	}
+
+	var_dump( $type, $extra_ids );
 	global $retry_later;
 
-	$id_normalizer = trim(...);
-
+	$id_normalizer = false;
 	switch ( $type ) {
 		case 'checkins' :
 			$endpoint = $GLOBALS['checkin_endpoint'];
@@ -135,12 +139,8 @@ function lengthen( $type, $options ) {
 			$endpoint = $GLOBALS['venue_visited_endpoint'];
 			break;
 		case 'venues-liked' :
+			$id_normalizer = fn( $short_id ) => array_reverse( explode( '-', $short_id ) )[0];
 			$endpoint = $GLOBALS['venue_liked_endpoint'];
-			$id_normalizer = fn( $id ) => array_reverse( explode( '-', $id ) )[0];
-			break;
-		case 'venues' :
-			$endpoint = $GLOBALS['venue_visited_endpoint'];
-			$id_normalizer = fn( $id ) => array_reverse( explode( '-', $id ) )[0];
 			break;
 		case 'photos' :
 			$endpoint = $GLOBALS['photo_endpoint'];
@@ -150,39 +150,33 @@ function lengthen( $type, $options ) {
 			exit( 1 );
 	}
 
-	if ( 'venues' === $type ) {
-		$venues_liked_longs = $GLOBALS['venue_liked_endpoint']->get_all_long_ids();
-		$venues_visited_longs = $GLOBALS['venue_visited_endpoint']->get_all_long_ids();
-		$venues_liked_shorts = $GLOBALS['venue_liked_endpoint']->get_all_ids();
-		$venues_visited_shorts = $GLOBALS['venue_visited_endpoint']->get_all_ids();
+	$current_shorts = $endpoint->get_all_ids();
+	$current_longs = $endpoint->get_all_long_ids();
 
-		$current_longs = array_merge(
-			$venues_liked_longs,
-			$venues_visited_longs,
-		);
+	if ( 'venues-liked' === $type ) {
+		// [ short_id => long_id, ... ]
+		$current_shorts = array_combine( $current_shorts, array_map( $id_normalizer, $current_shorts ) );
 
-		$current_shorts = array_merge(
-			array_fill_keys( $venues_liked_shorts, $GLOBALS['venue_liked_endpoint'] ),
-			array_fill_keys( $venues_visited_shorts, $GLOBALS['venue_visited_endpoint'] ),
-		);
+		$extra_ids = array_combine( $extra_ids, array_map( $id_normalizer, $extra_ids ) );
 	} else {
-		$current_longs = $endpoint->get_all_long_ids();
-		$current_shorts = array_fill_keys( $endpoint->get_all_ids(), $endpoint );
+		$current_shorts = array_combine( $current_shorts, $current_shorts );
+
+		$extra_ids = array_combine( $extra_ids, $extra_ids );
 	}
 
-	$current_longs = array_combine( $current_longs, $current_longs );
-
-	$need_longs = array_diff_key( $current_shorts, $current_longs );
+	$need_longs = array_diff( $current_shorts, $current_longs );
+	$need_longs = array_merge( $need_longs, $extra_ids );
 
 	$i = -1;
 	foreach ( array_chunk( $need_longs, 100, true ) as $chunk ) {
-		$short_items = array_map( fn( $id ) => $need_longs[ $id ]->load( $id ), array_keys( $chunk ) );
-		$short_items = array_combine( array_keys( $chunk ), $short_items );
+		// [ long_id => short_item, ... ]
+		$short_items = array_map( fn( $id ) => $endpoint->load( $id ), array_flip( $chunk ) );
 
 		$new_items = [];
 		try {
+			// [ long_id => long_item, ... ]
 			$long_items = $endpoint->lengthen( $short_items );
-			foreach ( $long_items as $id => $long_item ) {
+			foreach ( $long_items as $long_id => $long_item ) {
 				$i++;
 				if ( ! isset( $long_item['id'] ) ) {
 					continue;
@@ -191,10 +185,10 @@ function lengthen( $type, $options ) {
 				$new_items[] = $long_item;
 
 				if ( 0 === ( $i % 100 ) ) {
-					echo "\t$id [$i]...\n";
+					echo "\t$long_id [$i]...\n";
 				}
 
-				$endpoint->store_long( $id, $short_items[ $id ], $long_item );
+				$endpoint->store_long( $long_id, $short_items[ $long_id ], $long_item );
 			}
 		} catch ( Rate_Limit $e ) {
 			$retry_later = max( $retry_later, $e->retry_at );
@@ -237,26 +231,32 @@ function confirm_checkin_descendants( array $checkins ) {
 	unset( $confirm_photo_ids );
 	if ( $need_photo_ids ) {
 		printf( "Fetching %d extra photos...\n", count( $need_photo_ids ) );
+		$to_lengthen = [];
 		foreach ( $need_photo_ids as $photo_id ) {
 			$photo = $photo_endpoint->get( explode( '-', $photo_id )[1] );
 			if ( $photo ) {
-				$photo_endpoint->store( $photo_id, $photo );
+				if ( $photo_endpoint->store( $photo_id, $photo ) ) {
+					$to_lengthen[] = $photo_id;
+				}
 			}
 		}
-		lengthen( 'photos', $options );
+		lengthen( 'photos', $to_lengthen );
 	}
 
 	$need_venue_ids = array_diff( $confirm_venue_ids, $venue_visited_endpoint->get_all_ids() );
 	unset( $confirm_venue_ids );
 	if ( $need_venue_ids ) {
 		printf( "Fetching %d extra venues...\n", count( $need_venue_ids ) );
+		$to_lengthen = [];
 		foreach ( $need_venue_ids as $venue_id ) {
 			$venue = $venue_visited_endpoint->get( $venue_id );
 			if ( $venue ) {
-				$venue_visited_endpoint->store( $venue_id, $venue );
+				if ( $venue_visited_endpoint->store( $venue_id, $venue ) ) {
+					$to_lengthen[] = $venue_id;
+				}
 			}
 		}
-		lengthen( 'venues-visited', $options );
+		lengthen( 'venues-visited', $to_lengthen );
 	}
 }
 
@@ -273,7 +273,7 @@ function retry_output( $retry_at ) {
 
 if ( $options['lengthen-only'] ) {
 	foreach ( $lengthen_eligables as $lengthen_eligable ) {
-		lengthen( $lengthen_eligable, $options );
+		lengthen( $lengthen_eligable );
 	}
 
 	if ( $retry_later > 0 ) {
@@ -301,21 +301,24 @@ if ( $current_types['venues-visited'] ?? null ) {
 		'after' => $options['all-shorts'] ? null : ( $last_checkin_time - $options['lookback'] ),
 	];
 	$i = -1;
-	$slug = 'no venues visited';
+	$venue_visited_id = 'no venues visited';
 	echo "Venues Visited:\n";
+	$to_lengthen = [];
 	foreach ( $venue_visited_endpoint->iterate_short( ...$venue_visited_options ) as $venue ) {
 		$i++;
-		$slug = $venue['id'];
+		$venue_visited_id = $venue['id'];
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$venue_visited_id [$i]...\n";
 		}
 
-		$venue_visited_endpoint->store( $slug, $venue );
+		if ( $venue_visited_endpoint->store( $venue_visited_id, $venue ) ) {
+			$to_lengthen[] = $venue_visited_id;
+		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$venue_visited_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'venues-visited', $options );
+	lengthen( 'venues-visited', $to_lengthen );
 	echo "\n";
 }
 
@@ -326,22 +329,25 @@ if ( $current_types['venues-liked'] ?? null ) {
 		'after' => $options['all-shorts'] ? null : ( $last_venue_liked_time - $options['lookback'] ),
 	];
 	$i = -1;
-	$slug = 'no venues liked';
+	$venue_liked_id = 'no venues liked';
 	echo "Venues Liked:\n";
+	$to_lengthen = [];
 	foreach ( $venue_liked_endpoint->iterate_short( ...$venue_liked_options ) as $venue ) {
 		$i++;
-		$slug = sprintf( '%s-%s', $venue['ratedAt'], $venue['id'] );
+		$venue_liked_id = sprintf( '%s-%s', $venue['ratedAt'], $venue['id'] );
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$venue_liked_id [$i]...\n";
 		}
 		$i++;
 
-		$venue_liked_endpoint->store( $slug, $venue );
+		if ( $venue_liked_endpoint->store( $venue_liked_id, $venue ) ) {
+			$to_lengthen[] = $venue_liked_id;
+		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$venue_liked_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'venues-liked', $options );
+	lengthen( 'venues-liked', $to_lengthen );
 	echo "\n";
 }
 
@@ -352,21 +358,24 @@ if ( $current_types['photos'] ?? null ) {
 		'after' => $options['all-shorts'] ? null : ( $last_photo_time - $options['lookback'] ),
 	];
 	$i = -1;
-	$slug = 'no photos';
+	$photo_id = 'no photos';
 	echo "Photos:\n";
+	$to_lengthen = [];
 	foreach ( $photo_endpoint->iterate_short( ...$photo_options ) as $photo ) {
 		$i++;
-		$slug = sprintf( '%s-%s', $photo['createdAt'], $photo['id'] );
+		$photo_id = sprintf( '%s-%s', $photo['createdAt'], $photo['id'] );
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$photo_id [$i]...\n";
 		}
 
-		$photo_endpoint->store( $slug, $photo );
+		if ( $photo_endpoint->store( $photo_id, $photo ) ) {
+			$to_lengthen[] = $photo_id;
+		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$photo_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'photos', $options );
+	lengthen( 'photos', $to_lengthen );
 	echo "\n";
 }
 
@@ -376,59 +385,67 @@ if ( $current_types['checkins'] ?? null ) {
 		'after' => $options['all-shorts'] ? null : ( $last_checkin_time - $options['lookback'] ),
 	];
 	$i = -1;
-	$slug = 'no checkins';
+	$checkin_id = 'no checkins';
 	echo "Checkins:\n";
+	$to_lengthen = [];
 	foreach ( $checkin_endpoint->iterate_short( ...$checkin_options ) as $checkin ) {
 		$i++;
-		$slug = sprintf( '%s-%s', $checkin['createdAt'], $checkin['id'] );
+		$checkin_id = sprintf( '%s-%s', $checkin['createdAt'], $checkin['id'] );
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$checkin_id [$i]...\n";
 		}
 
-		$checkin_endpoint->store( $slug, $checkin );
+		if ( $checkin_endpoint->store( $checkin_id, $checkin ) ) {
+			$to_lengthen[] = $checkin_id;
+		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$checkin_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'checkins', $options );
+	lengthen( 'checkins', $to_lengthen );
 	echo "\n";
 }
 
 
 if ( $current_types['curated-lists'] ?? null ) {
 	$i = -1;
-	$slug = 'no curated lists';
+	$curated_list_id = 'no curated lists';
 	echo "Curated Lists:\n";
+	$to_lengthen = [];
 	// Pagination doesn't work for curated lists request that do not include the `group` parameter.
 	foreach ( $curated_list_endpoint->iterate_short() as $curated_list ) {
 		$i++;
-		$slug = preg_replace( '/[^A-Za-z0-9]/', '_', $curated_list['id'] );
+		$curated_list_id = $curated_list['id'];
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$curated_list_id [$i]...\n";
 		}
 
-		$curated_list_endpoint->store( $slug, $curated_list );
+		if ( $curated_list_endpoint->store( $curated_list_id, $curated_list ) ) {
+			$to_lengthen[] = $curated_list_id;
+		}
 	}
 	// If there are more than 50 (what should this number be?) lists, paginate within each of the groups:
 	if ( $i >= 50 ) {
 		// Don't look for the items in the `yours` group. Those should have been the first ones in the previous list.
 		foreach ( [ 'created', 'followed' ] as $group ) {
 			foreach ( $curated_list_endpoint->iterate_short( group: $group ) as $curated_list ) {
-				$slug = preg_replace( '/[^A-Za-z0-9]/', '_', $curated_list['id'] );
+				$curated_list_id = $curated_list['id'];
 
 				if ( 0 === ( $i % 100 ) ) {
-					echo "\t$slug [$i]...\n";
+					echo "\t$curated_list_id [$i]...\n";
 				}
 				$i++;
 
-				$curated_list_endpoint->store( $slug, $curated_list );
+				if ( $curated_list_endpoint->store( $curated_list_id, $curated_list ) ) {
+					$to_lengthen[] = $curated_list_id;
+				}
 			}
 		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$curated_list_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'curated-lists', $options );
+	lengthen( 'curated-lists', array_unique( $to_lengthen ) );
 	echo "\n";
 }
 
@@ -439,40 +456,43 @@ if ( $current_types['tips'] ?? null ) {
 		'after' => $options['all-shorts'] ? null : ( $last_tip_time - $options['lookback'] ),
 	];
 	$i = -1;
-	$slug = 'no tips';
+	$tip_id = 'no tips';
 	echo "Tips:\n";
+	$to_lengthen = [];
 	foreach ( $tip_endpoint->iterate_short( ...$tip_options ) as $tip ) {
 		$i++;
-		$slug = sprintf( '%s-%s', $tip['createdAt'], $tip['id'] );
+		$tip_id = sprintf( '%s-%s', $tip['createdAt'], $tip['id'] );
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$tip_id [$i]...\n";
 		}
 
-		$tip_endpoint->store( $slug, $tip );
+		if ( $tip_endpoint->store( $tip_id, $tip ) ) {
+			$to_lengthen[] = $tip_id;
+		}
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$tip_id [$i]\n";
 	echo "\tLengthening...\n";
-	lengthen( 'tips', $options );
+	lengthen( 'tips', $to_lengthen );
 	echo "\n";
 }
 
 
 if ( $current_types['tastes'] ?? null ) {
 	$i = -1;
-	$slug = 'no tastes';
+	$taste_id = 'no tastes';
 	echo "Tastes:\n";
 	foreach ( $taste_endpoint->iterate_short() as $taste ) {
 		$i++;
-		$slug = $taste['id'];
+		$taste_id = $taste['id'];
 
 		if ( 0 === ( $i % 100 ) ) {
-			echo "\t$slug [$i]...\n";
+			echo "\t$taste_id [$i]...\n";
 		}
 
-		$taste_endpoint->store( $slug, $taste );
+		$taste_endpoint->store( $taste_id, $taste );
 	}
-	echo "\t$slug [$i]\n";
+	echo "\t$taste_id [$i]\n";
 	echo "\n";
 }
 
