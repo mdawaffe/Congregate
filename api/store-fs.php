@@ -9,6 +9,12 @@ class Store_FS extends Store {
 	}
 
 	protected function file_from_id( string $table, string $id ): string {
+		switch ( $table ) {
+			case 'curated-lists' :
+				$id = preg_replace( '/[^A-Za-z0-9]/', '_', $id );
+				break;
+		}
+
 		return sprintf( '%s/%s/%s.json', $this->store_dir, $table, $id );
 	}
 
@@ -17,6 +23,9 @@ class Store_FS extends Store {
 			case 'venues-visited' :
 			case 'venues-liked' :
 				$table = 'venues';
+				break;
+			case 'curated-lists' :
+				$id = preg_replace( '/[^A-Za-z0-9]/', '_', $id );
 				break;
 		}
 
@@ -37,14 +46,56 @@ class Store_FS extends Store {
 		}
 	}
 
-	public function store( string $table, string $id, array $item ): bool {
+	public function store( string $table, string $id, array $item ): ?bool {
 		try {
 			$json = json_encode( $item, flags: \JSON_THROW_ON_ERROR );
 		} catch ( \Exception $e ) {
 			return false;
 		}
 
-		return strlen( $json ) === file_put_contents( $this->file_from_id( $table, $id ), $json );
+		$file = $this->file_from_id( $table, $id );
+
+		if ( file_exists( $file ) ) {
+			$already = file_get_contents( $file );
+
+			switch ( $table ) {
+				case 'checkin' :
+					$new = $item;
+					unset( $new['venue'] );
+
+					try {
+						$old = json_decode( $already, flags: \JSON_THROW_ON_ERROR | \JSON_OBJECT_AS_ARRAY );
+					} catch ( \Exception $e ) {
+						return false;
+					}
+					unset( $old['venue'] );
+
+					if ( $new == $old ) {
+						return null;
+					}
+				case 'curated-lists' :
+					$new = $item;
+					unset( $new['placesSummary'], $new['photos'] );
+
+					try {
+						$old = json_decode( $already, flags: \JSON_THROW_ON_ERROR | \JSON_OBJECT_AS_ARRAY );
+					} catch ( \Exception $e ) {
+						return false;
+					}
+					unset( $old['placesSummary'], $old['photos'] );
+
+					if ( $new == $old ) {
+						return null;
+					}
+				default :
+					if ( $json === $already ) {
+						return null;
+					}
+					break;
+			}
+		}
+
+		return strlen( $json ) === file_put_contents( $file, $json );
 	}
 
 	public function load_long( string $table, string $id ) {
