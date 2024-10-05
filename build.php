@@ -1,16 +1,11 @@
 <?php
 
-$file = sprintf( '%s/client/checkins.geo.json', __DIR__ );
-$working_file = "{$file}.work";
-
-$f = fopen( $working_file, 'w' );
-fwrite( $f, "[\n" );
-$first = true;
+namespace MDAWaffe\Swarm;
 
 function format_date( $timestamp, $timezone ) {
-	$date = new DateTime( "@{$timestamp}", $timezone );
+	$date = new \DateTime( "@{$timestamp}", $timezone );
 	$date->setTimezone( $timezone );
-	return $date->format( DateTime::RFC3339 );
+	return $date->format( \DateTime::RFC3339 );
 }
 
 $states = require __DIR__ . '/states.php';
@@ -278,242 +273,286 @@ function overlap_cmp( $a, $b ) {
 	return $a['timestamp'] - $b['timestamp'];
 }
 
-$overrides = ( @include(  __DIR__ . '/overrides.php' ) ) ?: [];
+function build( $source_files = null ) {
+	global $countries;
 
-$new_mayor_messages = [
-	'New Mayor! That crown looks better on you!' => true,
-	"There's a new Mayor in town!" => true,
-	'You just became Mayor!' => true,
-//	'You just stole the mayorship!' => true, // caught by another test
-];
+	$file = sprintf( '%s/client/checkins.geo.json', __DIR__ );
 
-$short_checkin_files = glob( sprintf( '%s/store/checkins/%s.json', __DIR__, '*' ) );
-$pushed_checkin_files = glob( sprintf( '%s/store/push/checkins/%s.json', __DIR__, '*' ) );
+	$working_file = "{$file}.work";
 
-$short_checkin_basenames = array_map( 'basename', $short_checkin_files );
-$pushed_checkin_basenames = array_map( 'basename', $pushed_checkin_files );
-
-$pushed_checkin_basenames = array_diff( $pushed_checkin_basenames, $short_checkin_basenames );
-if ( $pushed_checkin_basenames ) {
-	$checkin_basenames = array_merge( $pushed_checkin_basenames, $short_checkin_basenames );
-	rsort( $checkin_basenames, SORT_NUMERIC );
-} else {
-	$checkin_basenames = array_reverse( $short_checkin_basenames );
-}
-
-unset(
-	$short_checkin_files,
-	$pushed_checkin_files,
-	$short_checkin_basenames,
-	$pushed_checkin_basenames
-);
-
-foreach ( $checkin_basenames as $checkin_basename ) {
-	$checkin_file = sprintf( '%s/store/full/checkins/%s', __DIR__, $checkin_basename );
-	if ( ! file_exists( $checkin_file ) ) {
-		$checkin_file = sprintf( '%s/store/checkins/%s', __DIR__, $checkin_basename );
-		if ( ! file_exists( $checkin_file ) ) {
-			$checkin_file = sprintf( '%s/store/push/checkins/%s', __DIR__, $checkin_basename );
-		}
+	$f = fopen( $working_file, 'x' );
+	if ( ! $f ) {
+		echo "ERROR: Could not open working file\n";
+		return 1;
 	}
-	$checkin = json_decode( file_get_contents( $checkin_file ), true );
 
-	$venue_file = sprintf( '%s/store/full/venues/%s.json', __DIR__, $checkin['venue']['id'] );
-	if ( file_exists( $venue_file ) ) {
-		$venue = json_decode( file_get_contents( $venue_file ), true );
+	$first = true;
+	if ( $source_files ) {
+		// Prepending
+		$checkin_basenames = array_map( basename(...), $source_files );
 	} else {
-		echo "MISSING VENUE: $venue_file\n";
-		$venue = [];
-	}
+		// Replacing
 
-	$timezone = new DateTimeZone( sprintf( '%+05d', $checkin['timeZoneOffset'] / 60 * 100 ) );
+		$short_checkin_files = glob( sprintf( '%s/store/checkins/%s.json', __DIR__, '*' ) );
+		$pushed_checkin_files = glob( sprintf( '%s/store/push/checkins/%s.json', __DIR__, '*' ) );
 
-	$categories = $checkin['venue']['categories'];
-	$category_ids = array_column( $categories, 'id' );
-	foreach ( $venue['categories'] ?? [] as $category ) {
-		if ( ! in_array( $category['id'], $category_ids, true ) ) {
-			$categories[] = $category;
+		$short_checkin_basenames = array_map( basename(...), $short_checkin_files );
+		$pushed_checkin_basenames = array_map( basename(...), $pushed_checkin_files );
+
+		$pushed_checkin_basenames = array_diff( $pushed_checkin_basenames, $short_checkin_basenames );
+		if ( $pushed_checkin_basenames ) {
+			$checkin_basenames = array_merge( $pushed_checkin_basenames, $short_checkin_basenames );
+			rsort( $checkin_basenames, \SORT_NUMERIC );
+		} else {
+			$checkin_basenames = array_reverse( $short_checkin_basenames );
 		}
-	}
-	usort( $categories, function( $a, $b ) use ( $checkin ) {
-		return ( $a['primary'] ?? null ) ? -1 : strcasecmp( $a['name'], $b['name'] );
-	} );
 
-	$sticker = format_sticker( $checkin['sticker'] ?? null );
-
-	$unlocked_stickers = ( $checkin['unlockedStickers'] ?? null )
-		? array_map( 'format_unlocked_sticker', $checkin['unlockedStickers'] )
-		: null;
-
-	$categories = format_categories( $categories );
-
-	$became_mayor = false;
-	foreach ( $checkin['score']['scores'] ?? [] as $score ) {
-		if (
-			isset( $new_mayor_messages[ $score['message'] ] )
-		||
-			// You just stole the mayorship!
-			// You just stole the mayorship from X!
-			0 === strpos( $score['message'], 'You just stole the mayorship' )
-		) {
-			$became_mayor = true;
-			break;
-		}
+		unset(
+			$short_checkin_files,
+			$pushed_checkin_files,
+			$short_checkin_basenames,
+			$pushed_checkin_basenames
+		);
 	}
 
-	$photos = format_photos( $checkin['photos']['items'] ?? [] );
+	$overrides = ( @include(  __DIR__ . '/overrides.php' ) ) ?: [];
 
-	$comments = [];
-	foreach ( $checkin['comments']['items'] ?? [] as $item ) {
-		$name = trim( join( ' ', [ $item['user']['firstName'] ?? '', $item['user']['lastName'] ?? '' ] ) );
-		$comments[] = [
-			'id' => $item['id'],
-			'author' => [
-				'name' => $name,
-				'photo' => $item['user']['photo']['prefix'] . '100x100' . $item['user']['photo']['suffix'],
-			],
-			'timestamp' => $item['createdAt'],
-			'date' => format_date( $item['createdAt'], $timezone ),
-			'text' => $item['text'],
-		];
-	}
-
-	$overlaps = [];
-	foreach ( $checkin['overlaps']['items'] ?? [] as $item ) {
-		$name = trim( join( ' ', [ $item['user']['firstName'] ?? '', $item['user']['lastName'] ?? '' ] ) );
-		$overlaps[] = [
-			'id' => $item['id'],
-			'author' => [
-				'name' => $name,
-				'photo' => $item['user']['photo']['prefix'] . '100x100' . $item['user']['photo']['suffix'],
-			],
-			'timestamp' => $item['createdAt'],
-			'date' => format_date( $item['createdAt'], $timezone ),
-			'text' => $item['shout'] ?? null,
-			'photos' => format_photos( $item['photos']['items'] ?? [] ),
-		];
-	}
-	usort( $overlaps, 'overlap_cmp' );
-
-	$event = ( $checkin['event'] ?? false )
-		? [
-			'id' => $checkin['event']['id'],
-			'name' => $checkin['event']['name'],
-			'categories' => format_categories( $checkin['event']['categories'] ),
-		]
-		: null;
-
-	$posts = [];
-	foreach ( $checkin['posts']['items'] ?? [] as $item ) {
-		$posts[] = [
-			'id' => $item['id'],
-			'timestamp' => $item['createdAt'],
-			'date' => format_date( $item['createdAt'], $timezone ),
-			'text' => $item['text'] ?? null,
-			'url' => $item['url'] ?? null,
-			'source' => [
-				'name' => $item['source']['name'],
-				'icon' => $item['source']['icon'],
-				'url' => $item['source']['url'],
-			],
-		];
-	}
-
-	$country = $venue['location']['country'] ?? $checkin['venue']['location']['country'] ?? null;
-	$country = $countries[$country] ?? $country;
-	$state = format_state( $venue['location']['state'] ?? $checkin['venue']['location']['state'] ?? null, $country );
-
-	$total_score = $checkin['score']['total'] ?? 0;
-	$missed = 1 === $total_score && 'https://ss1.4sqi.net/img/points/coin_icon_clock.png' === ( $checkin['score']['scores'][0]['icon'] ?? '' );
-
-	$properties = [
-		'id' => $checkin['id'],
-		'name' => $checkin['venue']['name'] ?? $venue['name'],
-		'parent' => $venue['parent']['name'] ?? null,
-		'hierarchy' => format_hierarchy( $venue ),
-		'missed' => $missed,
-		'private' => $checkin['private'] ?? false,
-		'venue_id' => $checkin['venue']['id'],
-		'timestamp' => $checkin['createdAt'],
-		'date' => format_date( $checkin['createdAt'], $timezone ),
-		'text' => $checkin['shout'] ?? null,
-		'sticker' => $sticker,
-		'unlocked_stickers' => $unlocked_stickers,
-		'categories' => $categories,
-		'location' => [
-			'city' => $venue['location']['city'] ?? $checkin['venue']['location']['city'] ?? null,
-			'state' => $state,
-			'postal_code' => $venue['location']['postalCode'] ?? $checkin['venue']['location']['postalCode'] ?? null,
-			'country' => $country,
-			'formatted' => format_formatted_address( $venue, $checkin ),
-		],
-		'became_mayor' => $became_mayor,
-		'photos' => $photos,
-		'posts' => $posts,
-		'comments' => $comments,
-		'likes' => [
-			'count' => $checkin['likes']['count'] ?? 0,
-			'summary' => $checkin['likes']['summary'] ?? null,
-		],
-		'event' => $event,
-		'overlaps' => [
-			'count' => $checkin['overlaps']['count'] ?? 0,
-			'summary' => $checkin['overlaps']['summary'] ?? null,
-			'items' => $overlaps,
-		],
-		'stats' => [
-			'users' => $venue['stats']['usersCount'] ?? $checkin['venue']['stats']['usersCount'] ?? 0,
-			'checkins' => $checkin['venue']['stats']['checkinsCount'] ?? $checkin['venue']['stats']['checkinsCount'] ?? 0,
-		],
-		'score' => $checkin['score'] ?? [],
+	$new_mayor_messages = [
+		'New Mayor! That crown looks better on you!' => true,
+		"There's a new Mayor in town!" => true,
+		'You just became Mayor!' => true,
+	//	'You just stole the mayorship!' => true, // caught by another test
 	];
 
-	if ( isset( $overrides[$checkin['id']] ) ) {
-		printf( "OVERRIDING: %s - %s:%s\n", $checkin['id'], $checkin['venue']['id'], $checkin['venue']['name'] ?? $venue['name'] );
-		$old = $properties;
-		$properties = array_replace_recursive( $properties, $overrides[$checkin['id']] );
-		foreach ( $overrides[$checkin['id']] as $key => $value ) {
-			if ( 'location' === $key ) {
-				foreach ( $overrides[$checkin['id']]['location'] as $key => $value ) {
-					if ( $old['location'][$key] === $value ) {
-						echo "	NO LONGER NEEDED: location.$key\n";
+	fwrite( $f, "[\n" );
+
+	foreach ( $checkin_basenames as $checkin_basename ) {
+		$checkin_file = sprintf( '%s/store/full/checkins/%s', __DIR__, $checkin_basename );
+		if ( ! file_exists( $checkin_file ) ) {
+			$checkin_file = sprintf( '%s/store/checkins/%s', __DIR__, $checkin_basename );
+			if ( ! file_exists( $checkin_file ) ) {
+				$checkin_file = sprintf( '%s/store/push/checkins/%s', __DIR__, $checkin_basename );
+			}
+		}
+		$checkin = json_decode( file_get_contents( $checkin_file ), true );
+
+		$venue_file = sprintf( '%s/store/full/venues/%s.json', __DIR__, $checkin['venue']['id'] );
+		if ( file_exists( $venue_file ) ) {
+			$venue = json_decode( file_get_contents( $venue_file ), true );
+		} else {
+			echo "MISSING VENUE: $venue_file\n";
+			$venue = [];
+		}
+
+		$timezone = new \DateTimeZone( sprintf( '%+05d', $checkin['timeZoneOffset'] / 60 * 100 ) );
+
+		$categories = $checkin['venue']['categories'];
+		$category_ids = array_column( $categories, 'id' );
+		foreach ( $venue['categories'] ?? [] as $category ) {
+			if ( ! in_array( $category['id'], $category_ids, true ) ) {
+				$categories[] = $category;
+			}
+		}
+		usort( $categories, function( $a, $b ) use ( $checkin ) {
+			return ( $a['primary'] ?? null ) ? -1 : strcasecmp( $a['name'], $b['name'] );
+		} );
+
+		$sticker = format_sticker( $checkin['sticker'] ?? null );
+
+		$unlocked_stickers = ( $checkin['unlockedStickers'] ?? null )
+			? array_map( format_unlocked_sticker(...), $checkin['unlockedStickers'] )
+			: null;
+
+		$categories = format_categories( $categories );
+
+		$became_mayor = false;
+		foreach ( $checkin['score']['scores'] ?? [] as $score ) {
+			if (
+				isset( $new_mayor_messages[ $score['message'] ] )
+			||
+				// You just stole the mayorship!
+				// You just stole the mayorship from X!
+				0 === strpos( $score['message'], 'You just stole the mayorship' )
+			) {
+				$became_mayor = true;
+				break;
+			}
+		}
+
+		$photos = format_photos( $checkin['photos']['items'] ?? [] );
+
+		$comments = [];
+		foreach ( $checkin['comments']['items'] ?? [] as $item ) {
+			$name = trim( join( ' ', [ $item['user']['firstName'] ?? '', $item['user']['lastName'] ?? '' ] ) );
+			$comments[] = [
+				'id' => $item['id'],
+				'author' => [
+					'name' => $name,
+					'photo' => $item['user']['photo']['prefix'] . '100x100' . $item['user']['photo']['suffix'],
+				],
+				'timestamp' => $item['createdAt'],
+				'date' => format_date( $item['createdAt'], $timezone ),
+				'text' => $item['text'],
+			];
+		}
+
+		$overlaps = [];
+		foreach ( $checkin['overlaps']['items'] ?? [] as $item ) {
+			$name = trim( join( ' ', [ $item['user']['firstName'] ?? '', $item['user']['lastName'] ?? '' ] ) );
+			$overlaps[] = [
+				'id' => $item['id'],
+				'author' => [
+					'name' => $name,
+					'photo' => $item['user']['photo']['prefix'] . '100x100' . $item['user']['photo']['suffix'],
+				],
+				'timestamp' => $item['createdAt'],
+				'date' => format_date( $item['createdAt'], $timezone ),
+				'text' => $item['shout'] ?? null,
+				'photos' => format_photos( $item['photos']['items'] ?? [] ),
+			];
+		}
+		usort( $overlaps, overlap_cmp(...) );
+
+		$event = ( $checkin['event'] ?? false )
+			? [
+				'id' => $checkin['event']['id'],
+				'name' => $checkin['event']['name'],
+				'categories' => format_categories( $checkin['event']['categories'] ),
+			]
+			: null;
+
+		$posts = [];
+		foreach ( $checkin['posts']['items'] ?? [] as $item ) {
+			$posts[] = [
+				'id' => $item['id'],
+				'timestamp' => $item['createdAt'],
+				'date' => format_date( $item['createdAt'], $timezone ),
+				'text' => $item['text'] ?? null,
+				'url' => $item['url'] ?? null,
+				'source' => [
+					'name' => $item['source']['name'],
+					'icon' => $item['source']['icon'],
+					'url' => $item['source']['url'],
+				],
+			];
+		}
+
+		$country = $venue['location']['country'] ?? $checkin['venue']['location']['country'] ?? null;
+		$country = $countries[$country] ?? $country;
+		$state = format_state( $venue['location']['state'] ?? $checkin['venue']['location']['state'] ?? null, $country );
+
+		$total_score = $checkin['score']['total'] ?? 0;
+		$missed = 1 === $total_score && 'https://ss1.4sqi.net/img/points/coin_icon_clock.png' === ( $checkin['score']['scores'][0]['icon'] ?? '' );
+
+		$properties = [
+			'id' => $checkin['id'],
+			'name' => $checkin['venue']['name'] ?? $venue['name'],
+			'parent' => $venue['parent']['name'] ?? null,
+			'hierarchy' => format_hierarchy( $venue ),
+			'missed' => $missed,
+			'private' => $checkin['private'] ?? false,
+			'venue_id' => $checkin['venue']['id'],
+			'timestamp' => $checkin['createdAt'],
+			'date' => format_date( $checkin['createdAt'], $timezone ),
+			'text' => $checkin['shout'] ?? null,
+			'sticker' => $sticker,
+			'unlocked_stickers' => $unlocked_stickers,
+			'categories' => $categories,
+			'location' => [
+				'city' => $venue['location']['city'] ?? $checkin['venue']['location']['city'] ?? null,
+				'state' => $state,
+				'postal_code' => $venue['location']['postalCode'] ?? $checkin['venue']['location']['postalCode'] ?? null,
+				'country' => $country,
+				'formatted' => format_formatted_address( $venue, $checkin ),
+			],
+			'became_mayor' => $became_mayor,
+			'photos' => $photos,
+			'posts' => $posts,
+			'comments' => $comments,
+			'likes' => [
+				'count' => $checkin['likes']['count'] ?? 0,
+				'summary' => $checkin['likes']['summary'] ?? null,
+			],
+			'event' => $event,
+			'overlaps' => [
+				'count' => $checkin['overlaps']['count'] ?? 0,
+				'summary' => $checkin['overlaps']['summary'] ?? null,
+				'items' => $overlaps,
+			],
+			'stats' => [
+				'users' => $venue['stats']['usersCount'] ?? $checkin['venue']['stats']['usersCount'] ?? 0,
+				'checkins' => $checkin['venue']['stats']['checkinsCount'] ?? $checkin['venue']['stats']['checkinsCount'] ?? 0,
+			],
+			'score' => $checkin['score'] ?? [],
+		];
+
+		if ( isset( $overrides[$checkin['id']] ) ) {
+			printf( "OVERRIDING: %s - %s:%s\n", $checkin['id'], $checkin['venue']['id'], $checkin['venue']['name'] ?? $venue['name'] );
+			$old = $properties;
+			$properties = array_replace_recursive( $properties, $overrides[$checkin['id']] );
+			foreach ( $overrides[$checkin['id']] as $key => $value ) {
+				if ( 'location' === $key ) {
+					foreach ( $overrides[$checkin['id']]['location'] as $key => $value ) {
+						if ( $old['location'][$key] === $value ) {
+							echo "	NO LONGER NEEDED: location.$key\n";
+						}
 					}
-				}
-			} else {
-				if ( $old[$key] === $value ) {
-					echo "	NO LONGER NEEDED: $key\n";
+				} else {
+					if ( $old[$key] === $value ) {
+						echo "	NO LONGER NEEDED: $key\n";
+					}
 				}
 			}
 		}
-	}
 
-	if ( $first ) {
-		$first = false;
-	} else {
-		fwrite( $f, ",\n" );
-	}
+		if ( $first ) {
+			$first = false;
+		} else {
+			fwrite( $f, ",\n" );
+		}
 
-	fwrite(
-		$f,
-		json_encode(
-			[
-				'type' => 'Feature',
-				'properties' => $properties,
-				'geometry' => [
-					'type' => 'Point',
-					'coordinates' => [
-						$checkin['venue']['location']['lng'] ?? $venue['location']['lng'],
-						$checkin['venue']['location']['lat'] ?? $venue['location']['lat'],
+		fwrite(
+			$f,
+			json_encode(
+				[
+					'type' => 'Feature',
+					'properties' => $properties,
+					'geometry' => [
+						'type' => 'Point',
+						'coordinates' => [
+							$checkin['venue']['location']['lng'] ?? $venue['location']['lng'],
+							$checkin['venue']['location']['lat'] ?? $venue['location']['lat'],
+						],
 					],
 				],
-			],
-			JSON_PRETTY_PRINT
-		)
-	);
+				\JSON_PRETTY_PRINT
+			)
+		);
+	}
+
+	if ( $source_files ) {
+		// Prepending
+		$ff = fopen( $file, 'r+' );
+		fseek( $ff, 1, \SEEK_SET );
+
+		fwrite( $f, ",\n" );
+		stream_copy_to_stream( $ff, $f );
+
+		fclose( $f );
+		fclose( $ff );
+	} else {
+		// Replacing
+		fwrite( $f, "\n]" );
+
+		fclose( $f );
+	}
+
+	rename( $working_file, $file );
+
+	return 0;
 }
 
-fwrite( $f, "\n]" );
-
-fclose( $f );
-
-rename( $working_file, $file );
+// __main__
+if ( realpath( __FILE__ ) === realpath( $_SERVER['DOCUMENT_ROOT'] . $_SERVER['SCRIPT_NAME'] ) ) {
+	exit( build() );
+}
