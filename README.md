@@ -365,7 +365,7 @@ Arguments:
   will be fetched. Can be useful if some old checkin was missed for whatever
   reason.
 * `--lengthen-only`: Skip looking for new data and only "lengthen" data that
-  already been fetched. Lengthening is the that fetches the full/long
+  has already been fetched. Lengthening is the that fetches the full/long
   representation of any checkins and venues that currently only have a
   partial/short representation.
 * `--token=N`: Use the `N`th line (starting at `0`) of the `.access-token` file
@@ -388,8 +388,11 @@ Arguments:
     Foursquare,
   * `tips` - your Foursquare tips, or
   * `tastes` - your Foursquare tastes.
+
   `--type=TYPE` can be used multiple times in one command:
-  `php pull.php --type=checkins --type=photos`
+  ```
+  php pull.php --type=checkins --type=photos
+  ```
 * `--confirm-all-checkin-descendants`: Mostly useful when developing
   Congregate. This will loop through all known checkins and ensure Congregate
   has the venue and all photos associated with each checkin.
@@ -493,8 +496,8 @@ Arguments:
 Storage
 -------
 
-* `store/` : Partial/short representations of checkins, venues (both liked and
-  visited), tips, and curated lists. Photo JSON files. The only representations
+* `store/` : Partial/short representations of checkins, liked venues, visited
+  venues, tips, and curated lists. Photo JSON files. The only representations
   of users and tastes.
 * `store/full/`: Full/long representations of checkins, venues (both liked and
   visited), tips, and curated lists. Photo image files.
