@@ -411,7 +411,9 @@ function build( $source_files = null ) {
 				'photos' => format_photos( $item['photos']['items'] ?? [] ),
 			];
 		}
-		usort( $overlaps, overlap_cmp(...) );
+		if ( $overlaps ) {
+			usort( $overlaps, overlap_cmp(...) );
+		}
 
 		$event = ( $checkin['event'] ?? false )
 			? [
