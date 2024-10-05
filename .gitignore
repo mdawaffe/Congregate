@@ -3,6 +3,4 @@
 .oauth
 store
 store.old
-client/checkins.geo.json
-client/pushed-checkins
 overrides.php
