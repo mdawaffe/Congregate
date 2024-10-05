@@ -364,6 +364,12 @@ Arguments:
   not be rerun. Afterwards, only the full/long representations that are missing
   will be fetched. Can be useful if some old checkin was missed for whatever
   reason.
+* `--no-overwrite-shorts`: When Congregate fetches short information for an
+  object it already has (for example, when doing `lookback` fetches (see below)
+  or when doing an `--all-shorts` fetch (see above)), it compares a normalized
+  version of the existing object with a normalized version of the new object.
+  If they are different, Congregate will overwrite the existing object with the
+  new object. Use this argument to turn off that overwriting.
 * `--lengthen-only`: Skip looking for new data and only "lengthen" data that
   has already been fetched. Lengthening is the that fetches the full/long
   representation of any checkins and venues that currently only have a
