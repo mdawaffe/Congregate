@@ -23,8 +23,8 @@ abstract class Item {
 		return $this->store->load( static::TABLE, $id );
 	}
 
-	function store( string $id, array $item ): ?bool {
-		return $this->store->store( static::TABLE, $id, $item );
+	function store( string $id, array $item, bool $overwrite_if_different = true ): ?bool {
+		return $this->store->store( static::TABLE, $id, $item, $overwrite_if_different );
 	}
 
 	function load_long( string $id ) {

@@ -46,7 +46,7 @@ class Store_FS extends Store {
 		}
 	}
 
-	public function store( string $table, string $id, array $item ): ?bool {
+	public function store( string $table, string $id, array $item, bool $overwrite_if_different = true ): ?bool {
 		try {
 			$json = json_encode( $item, flags: \JSON_THROW_ON_ERROR );
 		} catch ( \Exception $e ) {
@@ -56,8 +56,13 @@ class Store_FS extends Store {
 		$file = $this->file_from_id( $table, $id );
 
 		if ( file_exists( $file ) ) {
+			if ( ! $overwrite_if_different ) {
+				return false;
+			}
+
 			$already = file_get_contents( $file );
 
+			// Don't consider these differences to be "different".
 			switch ( $table ) {
 				case 'checkin' :
 					$new = $item;

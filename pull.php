@@ -68,6 +68,9 @@ $options = getopt(
 	'',
 	[
 		'all-shorts', // Whether to fetch all short representations (--all-shorts) or fetch from where we left off last time (default).
+		'no-overwrite-shorts', // When fetching a short representation that we already have, we normalize the old and new versions
+		                       // then overwrite the old with the new if the normalized-new is different than the normalized-old.
+		                       // This setting turns off that overwriting. Potentially useful for an --all-shorts sync.
 		'lengthen-only', // Turns of syncing of new data. Only lengthens checkins, venues, etc. that have only a short representation and not a long representation.
 		'token::', // (int) Which access token to use. 0-indexed line number of ./.access-token. Default = 0.
 		'lookback::', // (int) When not doing an all-shorts fetch, number of seconds to look back from where we left off last time. Default = 1209600 (two weeks).
@@ -77,6 +80,7 @@ $options = getopt(
 );
 
 $options['all-shorts'] = isset( $options['all-shorts'] );
+$options['no-overwrite-shorts'] = isset( $options['no-overwrite-shorts'] );
 $options['confirm-all-checkin-descendants'] = isset( $options['confirm-all-checkin-descendants'] );
 $options['lengthen-only'] = isset( $options['lengthen-only'] );
 $options['token'] = (int) ( $options['token'] ?? 0 );
@@ -121,7 +125,6 @@ function lengthen( $type, $extra_ids = [] ) {
 		return lengthen( 'venues-liked' ) && lengthen( 'venues-visited' );
 	}
 
-	var_dump( $type, $extra_ids );
 	global $retry_later;
 
 	$id_normalizer = false;
@@ -235,7 +238,7 @@ function confirm_checkin_descendants( array $checkins ) {
 		foreach ( $need_photo_ids as $photo_id ) {
 			$photo = $photo_endpoint->get( explode( '-', $photo_id )[1] );
 			if ( $photo ) {
-				if ( $photo_endpoint->store( $photo_id, $photo ) ) {
+				if ( $photo_endpoint->store( $photo_id, $photo, ! $options['no-overwrite-shorts'] ) ) {
 					$to_lengthen[] = $photo_id;
 				}
 			}
@@ -251,7 +254,7 @@ function confirm_checkin_descendants( array $checkins ) {
 		foreach ( $need_venue_ids as $venue_id ) {
 			$venue = $venue_visited_endpoint->get( $venue_id );
 			if ( $venue ) {
-				if ( $venue_visited_endpoint->store( $venue_id, $venue ) ) {
+				if ( $venue_visited_endpoint->store( $venue_id, $venue, ! $options['no-overwrite-shorts'] ) ) {
 					$to_lengthen[] = $venue_id;
 				}
 			}
@@ -291,7 +294,7 @@ $last_checkin_time = $checkin_endpoint->last_from_store();
 if ( $current_types['users'] ?? null ) {
 	echo "User:\n";
 	$me = $user_endpoint->get( 'self' );
-	$user_endpoint->store( $me['id'], $me );
+	$user_endpoint->store( $me['id'], $me, ! $options['no-overwrite-shorts'] );
 	echo "\t{$me['handle']} {$me['id']}\n";
 }
 
@@ -312,7 +315,7 @@ if ( $current_types['venues-visited'] ?? null ) {
 			echo "\t$venue_visited_id [$i]...\n";
 		}
 
-		if ( $venue_visited_endpoint->store( $venue_visited_id, $venue ) ) {
+		if ( $venue_visited_endpoint->store( $venue_visited_id, $venue, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $venue_visited_id;
 		}
 	}
@@ -341,7 +344,7 @@ if ( $current_types['venues-liked'] ?? null ) {
 		}
 		$i++;
 
-		if ( $venue_liked_endpoint->store( $venue_liked_id, $venue ) ) {
+		if ( $venue_liked_endpoint->store( $venue_liked_id, $venue, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $venue_liked_id;
 		}
 	}
@@ -369,7 +372,7 @@ if ( $current_types['photos'] ?? null ) {
 			echo "\t$photo_id [$i]...\n";
 		}
 
-		if ( $photo_endpoint->store( $photo_id, $photo ) ) {
+		if ( $photo_endpoint->store( $photo_id, $photo, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $photo_id;
 		}
 	}
@@ -396,7 +399,7 @@ if ( $current_types['checkins'] ?? null ) {
 			echo "\t$checkin_id [$i]...\n";
 		}
 
-		if ( $checkin_endpoint->store( $checkin_id, $checkin ) ) {
+		if ( $checkin_endpoint->store( $checkin_id, $checkin, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $checkin_id;
 		}
 	}
@@ -421,7 +424,7 @@ if ( $current_types['curated-lists'] ?? null ) {
 			echo "\t$curated_list_id [$i]...\n";
 		}
 
-		if ( $curated_list_endpoint->store( $curated_list_id, $curated_list ) ) {
+		if ( $curated_list_endpoint->store( $curated_list_id, $curated_list, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $curated_list_id;
 		}
 	}
@@ -437,7 +440,7 @@ if ( $current_types['curated-lists'] ?? null ) {
 				}
 				$i++;
 
-				if ( $curated_list_endpoint->store( $curated_list_id, $curated_list ) ) {
+				if ( $curated_list_endpoint->store( $curated_list_id, $curated_list, ! $options['no-overwrite-shorts'] ) ) {
 					$to_lengthen[] = $curated_list_id;
 				}
 			}
@@ -467,7 +470,7 @@ if ( $current_types['tips'] ?? null ) {
 			echo "\t$tip_id [$i]...\n";
 		}
 
-		if ( $tip_endpoint->store( $tip_id, $tip ) ) {
+		if ( $tip_endpoint->store( $tip_id, $tip, ! $options['no-overwrite-shorts'] ) ) {
 			$to_lengthen[] = $tip_id;
 		}
 	}
@@ -490,7 +493,7 @@ if ( $current_types['tastes'] ?? null ) {
 			echo "\t$taste_id [$i]...\n";
 		}
 
-		$taste_endpoint->store( $taste_id, $taste );
+		$taste_endpoint->store( $taste_id, $taste, ! $options['no-overwrite-shorts'] );
 	}
 	echo "\t$taste_id [$i]\n";
 	echo "\n";
