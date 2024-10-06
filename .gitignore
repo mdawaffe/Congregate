@@ -1,6 +1,5 @@
 .DS_Store
 .access-token
 .oauth
-store
-store.old
+store.*
 overrides.php
