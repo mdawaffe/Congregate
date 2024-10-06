@@ -342,6 +342,20 @@ checked in to it, real time notifications are the only way to get that data.
     corresponding to the push you just triggered. (Note that Congregate stores
     checkins by their ID so pushing the "Resend" button multiple times will not
     produce multiple files in `client/checkins/pushed/`.)
+16. If you want pushed checkins to get added immediately to the website's data
+    (the alternative is just to wait for your continued sync process to pick up
+    the changes), make sure your continued sync process leaves
+    `client/checkins/checkins.geo.json` in a state that is writeable by the
+    webserver. For example, if your continued sync process runs as user
+    `checkins`, and the webserver runs as `www-data`, you'll probably want to:
+    ```
+    adduser checkins www-data
+    ```
+    and make sure your continued sync process runs:
+    ```
+    chgrp www-data ~/client/checkins/checkins.geo.json
+    ```
+    after each build.
 
 If the above all checks out, your server should receive a similar push for each
 new checkin of yours. The cron job is still important to fetch the full/long
