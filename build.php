@@ -549,7 +549,11 @@ function build( $source_files = null ) {
 		fclose( $f );
 	}
 
-	rename( $working_file, $file );
+	if ( ! rename( $working_file, $file ) ) {
+		echo "ERROR: Could not rename working file. Deleting.\n";
+		unlink( $working_file ); // So the next run can try again.
+		return 1;
+	}
 
 	return 0;
 }
