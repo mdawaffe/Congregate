@@ -818,6 +818,7 @@
 		map.addLayer( clusterGroup );
 
 		if ( id ) {
+			document.body.className = 'view-map';
 			await renderPoints( id );
 		} else {
 			if ( query.toString().length ) {
