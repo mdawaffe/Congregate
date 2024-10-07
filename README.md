@@ -349,13 +349,13 @@ checked in to it, real time notifications are the only way to get that data.
     webserver. For example, if your continued sync process runs as user
     `checkins`, and the webserver runs as `www-data`, you'll probably want to:
     ```
-    adduser checkins www-data
+    sudo adduser checkins www-data # Add checkins user to the www-data group
+    chgrp www-data ~/client/checkins
+    chmod g+s ~/client/checkins
     ```
-    and make sure your continued sync process runs:
-    ```
-    chgrp www-data ~/client/checkins/checkins.geo.json
-    ```
-    after each build.
+    With the `SGID` bit set, the build script will generate the
+    `client/checkins/checkins.geo.json` file with its group set to `www-data`,
+    allowing the webserver to modify the file.
 
 If the above all checks out, your server should receive a similar push for each
 new checkin of yours. The cron job is still important to fetch the full/long
