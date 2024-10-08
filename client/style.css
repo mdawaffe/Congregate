@@ -136,16 +136,25 @@ h2 span::before {
 .categories {
 	margin: 0;
 	padding: 0;
+	display: flex;
 	list-style: none;
 	position: absolute;
 	top: 0;
 	left: 0;
+	right: 0;
+	bottom: 0;
 	z-index: -1;
-}
 
-.categories img {
-	filter: invert(.5) opacity(.1);
-	transform: translate(30%, 30%) scale(2);
+	li {
+		display: inline-block;
+		width: 90px;
+		height: 90px;
+	}
+
+	img {
+		filter: invert(.5) opacity(.1);
+		transform: translate(30%, 30%) scale(2);
+	}
 }
 
 .sticker {
