@@ -471,7 +471,9 @@
 				const li = liSource.cloneNode( true );
 				li.querySelector( 'img' ).src = score.icon;
 				li.querySelector( 'q' ).textContent = score.message;
-				li.querySelector( 'span' ).textContent = `+${score.points.toLocaleString()}`;
+				li.querySelector( 'span' ).textContent = ( score.multiplier ?? false )
+					? `x${score.points.toLocaleString()}`
+					: `+${score.points.toLocaleString()}`;
 
 				ul.appendChild( li );
 			}

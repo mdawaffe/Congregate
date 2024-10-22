@@ -269,6 +269,35 @@ function format_hierarchy( $venue ): ?array {
 	return array_column( $venue['hierarchy'], 'name' );
 }
 
+function format_score( $checkin ) {
+	$the_score = $checkin['score'] ?? [];
+	if ( 'multiplier' !== ( $checkin['stickerPowerup']['bonusType'] ?? null ) ) {
+		return $the_score;
+	}
+
+	if ( ! is_array( $the_score['scores'] ?? null ) ) {
+		return $the_score;
+	}
+
+	$bonus = (int) ( $checkin['stickerPowerup']['value'] ?? 1 );
+	foreach ( $the_score['scores'] as &$score ) {
+		if ( ! is_int( $score['points'] ?? false ) ) {
+			continue;
+		}
+
+		$score['points'] /= $bonus;
+	}
+
+	$the_score['scores'][] = [
+		'icon' => $checkin['sticker']['image']['prefix'] . '60' . $checkin['sticker']['image']['name'],
+		'message' => preg_replace( "/^{$bonus}X\s+/", '', $checkin['stickerPowerup']['title'] ?? 'Bonus!' ),
+		'points' => $bonus,
+		'multiplier' => true,
+	];
+
+	return $the_score;
+}
+
 function overlap_cmp( $a, $b ) {
 	return $a['timestamp'] - $b['timestamp'];
 }
@@ -485,7 +514,7 @@ function build( $source_files = null ) {
 				'users' => $venue['stats']['usersCount'] ?? $checkin['venue']['stats']['usersCount'] ?? 0,
 				'checkins' => $checkin['venue']['stats']['checkinsCount'] ?? $checkin['venue']['stats']['checkinsCount'] ?? 0,
 			],
-			'score' => $checkin['score'] ?? [],
+			'score' => format_score( $checkin ),
 		];
 
 		if ( isset( $overrides[$checkin['id']] ) ) {
