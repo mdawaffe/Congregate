@@ -52,9 +52,12 @@
 	}
 
 	const stateList = document.getElementById( 'states' );
+	const venueIdRegExp = new RegExp( '^id:[0-9a-f]{24}$' );
+
 	async function filteredCheckins() {
 		await forCheckinData();
 
+		const venueId = form.venue.value && venueIdRegExp.test( form.venue.value ) && form.venue.value.slice( 3 );
 		const venue = normalize( form.venue.value );
 		const venueRegExp = venue ? new RegExp( '\\b' + venue + '\\b' ) : null;
 		const start = form.start.valueAsNumber ? form.start.valueAsNumber : null;
@@ -112,13 +115,19 @@
 			}
 
 			if ( venue ) {
-				const name = normalize( checkin.properties.name );
-				if ( ! name.includes( venue ) ) {
-					return false;
-				}
+				if ( venueId ) {
+					if ( checkin.properties.venue_id !== venueId ) {
+						return false;
+					}
+				} else {
+					const name = normalize( checkin.properties.name );
+					if ( ! name.includes( venue ) ) {
+						return false;
+					}
 
-				if ( ! venueRegExp.test( name ) ) {
-					return false;
+					if ( ! venueRegExp.test( name ) ) {
+						return false;
+					}
 				}
 			}
 
@@ -247,11 +256,15 @@
 		}
 		const titleLink = title.querySelector( 'a' );
 		titleLink.textContent = checkin.properties.name;
-		titleLink.href = './?id=' + checkin.properties.id;
-		titleLink.dataset.checkin = checkin.properties.id;
-		titleLink.dataset.venue = checkin.properties.venue_id;
-		titleLink.dataset.users = checkin.properties.stats.users.toLocaleString();
-		titleLink.dataset.checkins = checkin.properties.stats.checkins.toLocaleString();
+		const currentURL = new URL( document.location.href );
+		currentURL.searchParams.set( 'venue', 'id:' + checkin.properties.venue_id );
+		titleLink.href = currentURL.toString();
+
+		const infoButton = content.querySelector( '.info' );
+		infoButton.dataset.checkin = checkin.properties.id;
+		infoButton.dataset.venue = checkin.properties.venue_id;
+		infoButton.dataset.users = checkin.properties.stats.users.toLocaleString();
+		infoButton.dataset.checkins = checkin.properties.stats.checkins.toLocaleString();
 
 		if ( checkin.properties.parent ) {
 			title.append( ` at ${checkin.properties.parent}` );
@@ -627,6 +640,7 @@
 	const info = document.getElementById( 'info' );
 
 	function renderInfo( checkinID, venueID, userCount, checkinCount ) {
+		console.log( checkinID, venueID, userCount, checkinCount );
 		const content = infoCardTemplate.content.cloneNode( true );
 		const visitedCount = checkinData.filter( checkin => checkin.properties.venue_id === venueID ).length;
 
@@ -749,6 +763,14 @@
 
 	document.body.addEventListener( 'click', event => {
 		if ( event.target.matches( 'h2 a' ) ) {
+			event.preventDefault();
+			const targetURL = new URL( event.target.href );
+			form.venue.value = targetURL.searchParams.get( 'venue' );
+			processForm();
+			return;
+		}
+
+		if ( event.target.matches( 'article .info' ) ) {
 			event.preventDefault();
 			renderInfo( event.target.dataset.checkin, event.target.dataset.venue, event.target.dataset.users, event.target.dataset.checkins );
 			info.showPopover();
