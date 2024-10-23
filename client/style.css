@@ -133,6 +133,11 @@ h2 span::before {
 	flex: 0 0 auto;
 }
 
+article .info {
+	display: inline-block;
+	vertical-align: top;
+}
+
 .categories {
 	margin: 0;
 	padding: 0;
@@ -172,6 +177,8 @@ h2 span::before {
 .location {
 	margin: 0;
 	padding: 0;
+	display: inline-block;
+	vertical-align: top;
 
 	summary {
 		list-style-type: none;
