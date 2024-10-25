@@ -640,7 +640,6 @@
 	const info = document.getElementById( 'info' );
 
 	function renderInfo( checkinID, venueID, userCount, checkinCount ) {
-		console.log( checkinID, venueID, userCount, checkinCount );
 		const content = infoCardTemplate.content.cloneNode( true );
 		const visitedCount = checkinData.filter( checkin => checkin.properties.venue_id === venueID ).length;
 
@@ -761,6 +760,9 @@
 		} );
 	} );
 
+	let lastInfo = null;
+	let statsOpen = false;
+
 	document.body.addEventListener( 'click', event => {
 		if ( event.target.matches( 'h2 a' ) ) {
 			event.preventDefault();
@@ -772,15 +774,31 @@
 
 		if ( event.target.matches( 'article .info' ) ) {
 			event.preventDefault();
-			renderInfo( event.target.dataset.checkin, event.target.dataset.venue, event.target.dataset.users, event.target.dataset.checkins );
-			info.showPopover();
+			if ( event.target === lastInfo ) {
+				// togglePopover() doesn't work well when triggered with a click for a popover="auto" popover.
+				// If the button is outside the popover, as in this case, the popover first autocloses.
+				// The toggle then opens it back up.
+				info.hidePopover();
+				lastInfo = null;
+			} else {
+				renderInfo( event.target.dataset.checkin, event.target.dataset.venue, event.target.dataset.users, event.target.dataset.checkins );
+				info.showPopover();
+				lastInfo = event.target;
+			}
 			return;
 		}
 
 		if ( event.target.matches( '#stats-locations' ) ) {
 			event.preventDefault();
-			renderStats( locations );
-			stats.showPopover();
+			if ( statsOpen ) {
+				// See above for togglePopover() + popover="auto"
+				stats.hidePopover();
+				statsOpen = false;
+			} else {
+				renderStats( locations );
+				stats.showPopover();
+				statsOpen = true;
+			}
 			return;
 		}
 
