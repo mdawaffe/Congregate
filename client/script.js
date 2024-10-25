@@ -760,8 +760,18 @@
 		} );
 	} );
 
-	let lastInfo = null;
+	// We use the toggle event to track statsOpen since the popover can change state
+	// outside of the #stats-locations click event, so we can't track statsOpen in that click handler.
+	// It's a popover="auto", so it can close by clicking anywhere outside the popover.
+	// It's a popover="auto", so checking .open or :popover-open during the click handler is finicky since clicking
+	// #stats-locations to close the popover is outside the popover, so it autocloses, changing
+	// the state of .open and :popover-open before we get a chance to check them to see if we should be opening or closing.
 	let statsOpen = false;
+	stats.addEventListener( 'toggle', event => statsOpen = 'open' === event.newState );
+
+	// Similar for lastInfo.
+	let lastInfo = null;
+	info.addEventListener( 'toggle', event => lastInfo = 'open' === event.newState ? lastInfo : null );
 
 	document.body.addEventListener( 'click', event => {
 		if ( event.target.matches( 'h2 a' ) ) {
@@ -779,7 +789,6 @@
 				// If the button is outside the popover, as in this case, the popover first autocloses.
 				// The toggle then opens it back up.
 				info.hidePopover();
-				lastInfo = null;
 			} else {
 				renderInfo( event.target.dataset.checkin, event.target.dataset.venue, event.target.dataset.users, event.target.dataset.checkins );
 				info.showPopover();
@@ -793,11 +802,9 @@
 			if ( statsOpen ) {
 				// See above for togglePopover() + popover="auto"
 				stats.hidePopover();
-				statsOpen = false;
 			} else {
 				renderStats( locations );
 				stats.showPopover();
-				statsOpen = true;
 			}
 			return;
 		}
