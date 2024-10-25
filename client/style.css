@@ -136,6 +136,7 @@ h2 span::before {
 article .info {
 	display: inline-block;
 	vertical-align: top;
+	cursor: pointer;
 }
 
 .categories {
@@ -191,6 +192,7 @@ article .info {
 
 		&::before {
 			content: "\25B6\FE0F\00A0";
+			cursor: pointer;
 		}
 	}
 
@@ -202,6 +204,7 @@ article .info {
 
 			&::before {
 				content: "\1F53D\00A0";
+				cursor: pointer;
 			}
 		}
 	}
@@ -424,9 +427,11 @@ q::before, q::after {
 
 .scores summary::before {
 	content: "\25B6\FE0F\00A0";
+	cursor: pointer;
 }
 .scores[open] summary::before {
 	content: "\1F53D\00A0";
+	cursor: pointer;
 }
 
 .scores ul {
