@@ -256,7 +256,7 @@
 		}
 		const titleLink = title.querySelector( 'a' );
 		titleLink.textContent = checkin.properties.name;
-		const currentURL = new URL( document.location.href );
+		let currentURL = new URL( document.location.href );
 		currentURL.searchParams.set( 'venue', 'id:' + checkin.properties.venue_id );
 		titleLink.href = currentURL.toString();
 
@@ -301,8 +301,15 @@
 		location.querySelector( 'p' ).textContent = checkin.properties.location.formatted.join( "\n" );
 
 		const time = content.querySelector( 'time' );
+		const dateLink = time.querySelector( 'a' );
 		time.dateTime = checkin.properties.date;
-		time.textContent = formatDate( checkin.properties.date );
+		const [ datePart, timePart ] = formatDate( checkin.properties.date ).split( ' ' );
+		dateLink.textContent = datePart;
+		currentURL = new URL( document.location.href );
+		currentURL.searchParams.set( 'start', datePart.replaceAll( '/', '-' ) );
+		currentURL.searchParams.set( 'end', datePart.replaceAll( '/', '-' ) );
+		dateLink.href = currentURL.toString();
+		time.append( ' ', timePart );
 		if ( checkin.properties.missed ) {
 			time.className = 'missed';
 		}
@@ -778,6 +785,15 @@
 			event.preventDefault();
 			const targetURL = new URL( event.target.href );
 			form.venue.value = targetURL.searchParams.get( 'venue' );
+			processForm();
+			return;
+		}
+
+		if ( event.target.matches( '.date' ) ) {
+			event.preventDefault();
+			const targetURL = new URL( event.target.href );
+			form.start.value = targetURL.searchParams.get( 'start' );
+			form.end.value = targetURL.searchParams.get( 'end' );
 			processForm();
 			return;
 		}
