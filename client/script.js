@@ -303,13 +303,13 @@
 		const time = content.querySelector( 'time' );
 		const dateLink = time.querySelector( 'a' );
 		time.dateTime = checkin.properties.date;
-		const [ datePart, timePart ] = formatDate( checkin.properties.date ).split( ' ' );
+		const [ datePart, ...timeParts ] = formatDate( checkin.properties.date ).split( ' ' );
 		dateLink.textContent = datePart;
 		currentURL = new URL( document.location.href );
 		currentURL.searchParams.set( 'start', datePart.replaceAll( '/', '-' ) );
 		currentURL.searchParams.set( 'end', datePart.replaceAll( '/', '-' ) );
 		dateLink.href = currentURL.toString();
-		time.append( ' ', timePart );
+		time.append( ' ', timeParts.join( ' ' ) );
 		if ( checkin.properties.missed ) {
 			time.className = 'missed';
 		}
