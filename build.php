@@ -11,14 +11,14 @@ function format_date( $timestamp, $timezone ) {
 $states = require __DIR__ . '/states.php';
 $countries = require __DIR__ . '/countries.php';
 
-function format_state( ?string $state, ?string $country ): ?array {
+function format_state( ?string $state, ?string $country_name ): ?array {
 	global $states;
 
 	if ( null === $state ) {
 		return null;
 	}
 
-	$country_states = $country ? $states[$country] ?? [] : [];
+	$country_states = $country_name ? $states[$country_name] ?? [] : [];
 
 	if ( isset( $country_states[$state] ) ) {
 		// Get the ID...
@@ -468,9 +468,13 @@ function build( $source_files = null ) {
 			];
 		}
 
-		$country = $venue['location']['country'] ?? $checkin['venue']['location']['country'] ?? null;
-		$country = $countries[$country] ?? $country;
-		$state = format_state( $venue['location']['state'] ?? $checkin['venue']['location']['state'] ?? null, $country );
+		$country_name = $venue['location']['country'] ?? $checkin['venue']['location']['country'] ?? null;
+		$country_name = $countries[$country_name] ?? $country_name;
+		$country = [
+			'id' => $venue['location']['cc'] ?? $checkin['venue']['location']['cc'] ?? null,
+			'name' => $country_name,
+		];
+		$state = format_state( $venue['location']['state'] ?? $checkin['venue']['location']['state'] ?? null, $country_name );
 
 		$total_score = $checkin['score']['total'] ?? 0;
 		$missed = 1 === $total_score && 'https://ss1.4sqi.net/img/points/coin_icon_clock.png' === ( $checkin['score']['scores'][0]['icon'] ?? '' );
