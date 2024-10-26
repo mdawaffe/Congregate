@@ -739,12 +739,11 @@
 		}
 
 		currentPage = 1;
-		await renderPoints();
 		const queryString = serializeForm( form );
-		if ( document.location.search.slice( 1 ) === queryString ) {
-			return;
+		if ( document.location.search.slice( 1 ) !== queryString ) {
+			history.pushState( {}, '', '?' + queryString );
 		}
-		history.pushState( {}, '', '?' + queryString );
+		await renderPoints();
 	}
 
 	async function clipboardWrite( text ) {
@@ -784,17 +783,14 @@
 		if ( event.target.matches( 'h2 a' ) ) {
 			event.preventDefault();
 			const targetURL = new URL( event.target.href );
-			form.venue.value = targetURL.searchParams.get( 'venue' );
-			processForm();
+			hydrateForm( form, targetURL.searchParams );
 			return;
 		}
 
 		if ( event.target.matches( '.date' ) ) {
 			event.preventDefault();
 			const targetURL = new URL( event.target.href );
-			form.start.value = targetURL.searchParams.get( 'start' );
-			form.end.value = targetURL.searchParams.get( 'end' );
-			processForm();
+			hydrateForm( form, targetURL.searchParams );
 			return;
 		}
 
@@ -828,8 +824,7 @@
 		if ( event.target.matches( '#stats a' ) ) {
 			event.preventDefault();
 			const targetURL = new URL( event.target.href );
-			form[locationParameter].value = targetURL.searchParams.get( locationParameter );
-			processForm();
+			hydrateForm( form, targetURL.searchParams );
 			stats.hidePopover();
 			return;
 		}
