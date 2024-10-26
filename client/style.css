@@ -182,6 +182,7 @@ article .info {
 	vertical-align: top;
 
 	summary {
+		/* Could also try ::marker? */
 		list-style-type: none;
 
 		span {

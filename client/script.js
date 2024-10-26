@@ -9,6 +9,7 @@
 	let locationParameter = 'country';
 
 	const locations = new Map;
+	const countries = new Map;
 
 	function normalize( string ) {
 		return string.normalize( 'NFKD' ).toLowerCase().replace( /\s+/g, ' ' ).replace( /[^a-z0-9 ]/g, '' );
@@ -32,6 +33,17 @@
 			' ',
 			local.toLocaleString( undefined, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' } ),
 		].join( '' );
+	}
+
+	function formatCountry( country ) {
+		return (
+			// Current build format.
+			country?.name
+			// Previous build format.
+			|| ( 'string' === typeof country && country )
+			// Fallback.
+			|| '-NONE-'
+		);
 	}
 
 	function matches( needle, haystack ) {
@@ -64,7 +76,7 @@
 		const end = form.end.valueAsNumber ? form.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
 		const category = form.category.value;
 		const sticker = form.sticker.value.replace( /[^\x00-xFF]/g, '' ).trim();
-		const country = form.country.value;
+		const country = form.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 		const state = form.state.value;
 		const city = normalize( form.city.value );
 		const missed = form.missed.checked;
@@ -84,7 +96,7 @@
 			let date = new Date( checkin.properties.date.split( 'T' )[0] );
 
 			if ( country ) {
-				const checkinCountry = checkin.properties.location.country || '-NONE-';
+				const checkinCountry = formatCountry( checkin.properties.location?.country );
 				if ( checkinCountry !== country ) {
 					return false;
 				} else if ( stateList.dataset.country !== country ) {
@@ -296,7 +308,7 @@
 		location.querySelector( 'summary span' ).textContent = Array.from( new Set( [
 			checkin.properties.location.city,
 			checkin.properties.location.state && checkin.properties.location.state.id,
-			checkin.properties.location.country,
+			formatCountry( checkin.properties.location?.country ),
 		].filter( l => l ) ) ).join( ', ' );
 		location.querySelector( 'p' ).textContent = checkin.properties.location.formatted.join( "\n" );
 
@@ -675,6 +687,11 @@
 
 	const stats = document.getElementById( 'stats' );
 
+	function countryFlag( country ) {
+		const id = countries.get( country ) ?? '';
+		return id.split( '' ).map( c => String.fromCodePoint( ( c.codePointAt() - 65 ) + 0x1F1E6 ) ).join( '' );
+	}
+
 	function renderStats( locations ) {
 		const content = statsCardTemplate.content.cloneNode( true );
 
@@ -688,7 +705,8 @@
 			const locationID = [ ...states.querySelectorAll( 'option' ) ].find( option => option.textContent == location )?.value ?? location;
 			currentURL.searchParams.append( locationParameter, locationID );
 			link.href = currentURL.toString();
-			dt.appendChild( link );
+			const dtContents = 'country' === locationParameter ? [ countryFlag( location ), ' ', link ] : [ link ];
+			dt.append( ...dtContents );
 			const dd = document.createElement( 'dd' );
 			dd.textContent = locations.get( location ).toLocaleString();
 			list.appendChild( dt );
@@ -887,36 +905,43 @@
 			await renderPoints();
 		}
 
-		const lists = {
-			categories: new Set,
-			countries: new Set,
-		};
-
+		const categories = new Set;
+		// const countries = new Map; // This is defined at the top in a higher scope.
 		const stickerMap = new Map;
 
 		await forCheckinData();
 		for ( let checkin of checkinData ) {
-			checkin.properties.categories.forEach( category => lists.categories.add( category.name ) );
-			lists.countries.add( checkin.properties.location.country || '-NONE-' );
+			checkin.properties.categories.forEach( category => categories.add( category.name ) );
+			const countryID = checkin.properties.location?.country?.id ?? null;
+			countries.set( formatCountry( checkin.properties.location?.country ), countryID );
 			if ( checkin.properties.sticker ) {
 				stickerMap.set( checkin.properties.sticker.name, checkin.properties.sticker.emoji );
 			}
 		}
 
-		for ( let [ listName, listItems ] of Object.entries( lists ) ) {
-			const list = document.getElementById( listName );
-			Array.from( listItems.values() ).sort().forEach( value => {
-				const option = document.createElement( 'option' );
-				option.value = value;
-				list.appendChild( option );
-			} );
-		}
+		const categoryList = document.getElementById( 'categories' );
+		Array.from( categories ).sort().forEach( value => {
+			const option = document.createElement( 'option' );
+			option.value = value;
+			categoryList.appendChild( option );
+		} );
+
+		const countryList = document.getElementById( 'countries' );
+		Array.from( countries.entries() ).sort( ( a, b ) => ( a[0] || '' ).localeCompare( b[0] || '' ) ).forEach( ( [ name, id ] ) => {
+			const option = document.createElement( 'option' );
+			option.value = `${ countryFlag( name ) } ${name}`;
+			countryList.appendChild( option );
+		} );
+
+		document.getElementById( 'country' ).addEventListener( 'change', event => {
+			event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+		} );
 
 		const list = document.getElementById( 'stickers' );
 		for ( let [ name, emoji ] of Array.from( stickerMap.entries() ).sort( ( a, b ) => a[0].localeCompare( b[0] ) ) ) {
-				const option = document.createElement( 'option' );
-				option.value = `${emoji} ${name}`;
-				list.appendChild( option );
+			const option = document.createElement( 'option' );
+			option.value = `${emoji} ${name}`;
+			list.appendChild( option );
 		}
 	});
 
