@@ -487,6 +487,9 @@ fetching all historical, existing data. See Automated Sync above.
 Starts a simple and nonperformant local webserver so that you can view your
 checkins in a local (non server) setup.
 
+Arguments:
+* `--no-build`: Skip the build step.
+
 
 ### `php fetch.php`
 
