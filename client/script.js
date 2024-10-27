@@ -2,6 +2,8 @@
 	const checkins = fetch( './checkins/checkins.geo.json' );
 	let checkinData;
 
+	const dateList = document.getElementById( 'dates' );
+
 	const outputCheckins = document.getElementById( 'stats-checkins' );
 	const outputVenues = document.getElementById( 'stats-venues' );
 	const outputLocations = document.getElementById( 'stats-locations' );
@@ -751,6 +753,75 @@
 		}
 	}
 
+	function updateDateList() {
+		const dateElement = document.createElement( 'input' );
+		dateElement.type = 'date';
+
+		let suggested = [];
+		if ( form.start.value && ! form.end.value ) {
+			dateElement.valueAsNumber = form.start.valueAsNumber + 1000 * 60 * 60 * 24 * 6;
+			const oneWeek = dateElement.value;
+
+			dateElement.value = form.start.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() + 1 );
+			const oneMonth = dateElement.value;
+
+			dateElement.value = form.start.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() + 1 );
+			const oneYear = dateElement.value;
+
+			suggested = [
+				[ form.start.value, 'One day' ],
+				[ oneWeek, 'One week' ],
+				[ oneMonth, 'One month' ],
+				[ oneYear, 'One year' ],
+			];
+			form.start.removeAttribute( 'list' );
+			form.end.setAttribute( 'list', 'dates' );
+		} else if ( ! form.start.value && form.end.value ) {
+			dateElement.valueAsNumber = form.end.valueAsNumber - 1000 * 60 * 60 * 24 * 6;
+			const oneWeek = dateElement.value;
+
+			dateElement.value = form.end.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() - 1 );
+			const oneMonth = dateElement.value;
+
+			dateElement.value = form.end.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() - 1 );
+			const oneYear = dateElement.value;
+
+			suggested = [
+				[ form.end.value, 'One day' ],
+				[ oneWeek, 'One week' ],
+				[ oneMonth, 'One month' ],
+				[ oneYear, 'One year' ],
+			];
+			form.end.removeAttribute( 'list' );
+			form.start.setAttribute( 'list', 'dates' );
+		} else if ( ! form.start.value && ! form.end.value ) {
+			dateList.replaceChildren();
+			return;
+		}
+
+		if ( ! suggested.length ) {
+			// Don't change the datalist. This way, you can pick "One day" then change your mind and pick "One week".
+			return;
+		}
+
+		dateList.replaceChildren();
+
+		for ( const [ value, label ] of suggested ) {
+			const option = document.createElement( 'option' );
+			option.value = value;
+			option.textContent = label;
+			dateList.appendChild( option );
+		}
+	}
+
 	async function processForm() {
 		if ( hydrating ) {
 			return;
@@ -761,6 +832,8 @@
 		if ( document.location.search.slice( 1 ) !== queryString ) {
 			history.pushState( {}, '', '?' + queryString );
 		}
+
+		updateDateList();
 		await renderPoints();
 	}
 
@@ -943,6 +1016,8 @@
 			option.value = `${emoji} ${name}`;
 			list.appendChild( option );
 		}
+
+		updateDateList();
 	});
 
 	window.addEventListener( 'popstate', event => {
