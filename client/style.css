@@ -133,7 +133,7 @@ h2 span::before {
 	flex: 0 0 auto;
 }
 
-article .info {
+.info {
 	display: inline-block;
 	vertical-align: top;
 	cursor: pointer;

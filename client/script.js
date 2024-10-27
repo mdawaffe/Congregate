@@ -812,7 +812,7 @@
 			return;
 		}
 
-		if ( event.target.matches( 'article .info' ) ) {
+		if ( event.target.matches( '.info' ) ) {
 			event.preventDefault();
 			if ( event.target === lastInfo ) {
 				// togglePopover() doesn't work well when triggered with a click for a popover="auto" popover.
