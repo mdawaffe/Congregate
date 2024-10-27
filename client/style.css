@@ -175,6 +175,17 @@ h2 span::before {
 	content: "\1F451";
 }
 
+summary {
+	&::marker {
+		content: "\25B6\FE0F\00A0";
+		cursor: pointer;
+	}
+
+	[open] &::marker {
+		content: "\1F53D\00A0";
+	}
+}
+
 .location {
 	margin: 0;
 	padding: 0;
@@ -182,30 +193,13 @@ h2 span::before {
 	vertical-align: top;
 
 	summary {
-		/* Could also try ::marker? */
-		list-style-type: none;
-
 		span {
 			display: block;
 			margin-inline-start: 20px;
 			margin-block-start: -20px;
-		}
 
-		&::before {
-			content: "\25B6\FE0F\00A0";
-			cursor: pointer;
-		}
-	}
-
-	&[open] {
-		summary {
-			span {
+			[open] & {
 				display: none;
-			}
-
-			&::before {
-				content: "\1F53D\00A0";
-				cursor: pointer;
 			}
 		}
 	}
@@ -420,19 +414,6 @@ q::before, q::after {
 
 .scores {
 	margin: 0.5em 0;
-}
-
-.scores summary {
-	list-style-type: none;
-}
-
-.scores summary::before {
-	content: "\25B6\FE0F\00A0";
-	cursor: pointer;
-}
-.scores[open] summary::before {
-	content: "\1F53D\00A0";
-	cursor: pointer;
 }
 
 .scores ul {
