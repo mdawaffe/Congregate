@@ -868,6 +868,7 @@
 		// The form is still filled.
 		window.setTimeout( async function() {
 			// Now the form is empty.
+			form.page.value = '';
 			await processForm( event );
 		} );
 	} );
