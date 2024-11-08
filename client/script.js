@@ -361,7 +361,7 @@
 			shortLiSource.remove();
 			longLiSource.remove();
 
-			for ( let overlap of checkin.properties.overlaps.items.reverse() ) {
+			for ( let overlap of checkin.properties.overlaps.items.toReversed() ) {
 				const shortLi = shortLiSource.cloneNode( true );
 				const shortImg = shortLi.querySelector( 'img' );
 				shortImg.src = overlap.author.photo;
