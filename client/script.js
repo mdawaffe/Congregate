@@ -830,7 +830,7 @@
 		currentPage = 1;
 		const queryString = serializeForm( form );
 		if ( document.location.search.slice( 1 ) !== queryString ) {
-			history.pushState( {}, '', '?' + queryString );
+			history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
 		}
 
 		updateDateList();
