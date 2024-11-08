@@ -240,7 +240,6 @@
 		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 	}).addTo(map);
 
-	let currentPage = 1;
 	const list = document.querySelector( '#list' );
 
 	const form = document.querySelector( 'form' );
@@ -272,6 +271,7 @@
 		titleLink.textContent = checkin.properties.name;
 		let currentURL = new URL( document.location.href );
 		currentURL.searchParams.set( 'venue', 'id:' + checkin.properties.venue_id );
+		currentURL.searchParams.delete( 'page' );
 		titleLink.href = currentURL.toString();
 
 		const infoButton = content.querySelector( '.info' );
@@ -322,6 +322,7 @@
 		currentURL = new URL( document.location.href );
 		currentURL.searchParams.set( 'start', datePart.replaceAll( '/', '-' ) );
 		currentURL.searchParams.set( 'end', datePart.replaceAll( '/', '-' ) );
+		currentURL.searchParams.delete( 'page' );
 		dateLink.href = currentURL.toString();
 		time.append( ' ', timeParts.join( ' ' ) );
 		if ( checkin.properties.missed ) {
@@ -599,6 +600,8 @@
 			points = points.filter( point => id === point.properties.id );
 		}
 
+		const currentPage = form.page.value ? parseInt( form.page.value, 10 ) : 1;
+
 		const start = ( currentPage - 1 ) * 12;
 		const displayPoints = points.slice( start, start + 12 );
 
@@ -632,24 +635,33 @@
 			pageNumbers.push( '+1' );
 		}
 
+		const currentURL = new URL( document.location.href );
+
 		for ( let pageNumber of pageNumbers ) {
 			const li = document.createElement( 'li' );
 			if ( pageNumber === currentPage.toString() || '\u22EF' === pageNumber ) {
 				li.textContent = pageNumber;
 			} else {
 				const a = document.createElement( 'a' );
-				a.href = `#${pageNumber}`;
 				switch ( pageNumber ) {
 					case '-1' :
+						1 === currentPage - 1
+							? currentURL.searchParams.delete( 'page' )
+							: currentURL.searchParams.set( 'page', currentPage - 1 );
 						a.textContent = '\u2B05\uFE0F';
 						break;
 					case '+1' :
+						currentURL.searchParams.set( 'page', currentPage + 1 );
 						a.textContent = '\u27A1\uFE0F';
 						break;
 					default :
+						'1' === pageNumber
+							? currentURL.searchParams.delete( 'page' )
+							: currentURL.searchParams.set( 'page', pageNumber );
 						a.textContent = pageNumber;
 						break;
 				}
+				a.href = currentURL.toString();
 				li.appendChild( a );
 			}
 			links.appendChild( li );
@@ -706,6 +718,7 @@
 			const currentURL = new URL( document.location.href );
 			const locationID = [ ...states.querySelectorAll( 'option' ) ].find( option => option.textContent == location )?.value ?? location;
 			currentURL.searchParams.append( locationParameter, locationID );
+			currentURL.searchParams.delete( 'page' );
 			link.href = currentURL.toString();
 			const dtContents = 'country' === locationParameter ? [ countryFlag( location ), ' ', link ] : [ link ];
 			dt.append( ...dtContents );
@@ -746,6 +759,9 @@
 					elements[key].value = value;
 					break;
 			}
+		}
+		if ( ! query.has( 'page' ) ) {
+			elements.page.value = '';
 		}
 		hydrating = false;
 		if ( ! isInit ) {
@@ -827,7 +843,6 @@
 			return;
 		}
 
-		currentPage = 1;
 		const queryString = serializeForm( form );
 		if ( document.location.search.slice( 1 ) !== queryString ) {
 			history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
@@ -928,26 +943,15 @@
 
 		if ( event.target.matches( 'nav button' ) ) {
 			document.body.className = event.target.id;
-			currentPage = 1;
+			form.page.value = '';
 			renderPoints();
 			return;
 		}
 
 		if ( event.target.matches( '.pages a' ) ) {
 			event.preventDefault();
-			const nextPage = event.target.hash.slice( 1 );
-			switch ( nextPage ) {
-				case '-1' :
-					currentPage--;
-					break;
-				case '+1' :
-					currentPage++;
-					break;
-				default :
-					currentPage = parseInt( nextPage, 10 );
-					break;
-			}
-			renderPoints();
+			const targetURL = new URL( event.target.href );
+			hydrateForm( form, targetURL.searchParams );
 			return;
 		}
 
