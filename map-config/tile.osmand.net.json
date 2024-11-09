@@ -1,0 +1,10 @@
+[
+	"https://tile.osmand.net/hd/{z}/{x}/{y}.png",
+	{
+		"minZoom": 1,
+		"maxZoom": 19,
+		"zoomOffset": 0,
+		"referrerPolicy": "no-referrer",
+		"attribution": "\u00A9\uFE0F <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors | \uD83E\uDDE1 <a href='https://osmand.net'>OsmAnd</a>"
+	}
+]

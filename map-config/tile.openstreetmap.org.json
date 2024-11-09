@@ -1,0 +1,6 @@
+[
+	"https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+	{
+		"attribution": "\u00A9\uFE0F <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+	}
+]

@@ -235,10 +235,49 @@
 		return filtered;
 	}
 
-	const map = L.map('map').setView([0, 0], 2);
-	L.tileLayer( 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-	}).addTo(map);
+	async function initializeMap() {
+		const configRequest = await fetch( './map-config.json' );
+		const config = await configRequest.json();
+
+		const map = L.map('map').setView([0, 0], 2);
+		L.tileLayer( ...config ).addTo(map);
+
+		const clusterGroup = L.markerClusterGroup( { chunkedLoading: true } );
+		map.addLayer( clusterGroup );
+
+		function render( points, id ) {
+			let selected;
+			const layer = L.geoJson(
+				points,
+				{
+					onEachFeature: ( feature, marker ) => {
+						marker.bindPopup( () => renderCard( feature ), {
+							minWidth: 305,
+							maxWidth: 305,
+						} );
+						if ( id && feature.properties.id === id ) {
+							selected = marker;
+						}
+					},
+				}
+			);
+			// It might be more performant to do clusterGroup.addLayers( points.getLayers() ).
+			clusterGroup.addLayer( layer );
+			if ( selected ) {
+				clusterGroup.zoomToShowLayer( selected, () => selected.openPopup() );
+			} else if ( points.length ) {
+				map.fitBounds( clusterGroup.getBounds() );
+			}
+		}
+
+		function clear() {
+			clusterGroup.clearLayers();
+		}
+
+		return { render, clear };
+	}
+
+	const mapAPI = initializeMap();
 
 	const list = document.querySelector( '#list' );
 
@@ -247,8 +286,6 @@
 	form.addEventListener( 'submit', event => {
 		event.preventDefault();
 	} );
-
-	const clusterGroup = L.markerClusterGroup( { chunkedLoading: true } );
 
 	const checkinCardTemplate = document.getElementById( 'checkin-card' );
 	const infoCardTemplate = document.getElementById( 'info-card' );
@@ -560,38 +597,13 @@
 		outputLocations.textContent = locations.size.toLocaleString();
 		outputLocationsLabel.textContent = locationLabel;
 
-		clusterGroup.clearLayers();
+		( await mapAPI ).clear();
 		list.replaceChildren();
 
 		if ( 'view-map' === document.body.className ) {
-			renderMap( points, id );
+			( await mapAPI ).render( points, id );
 		} else {
 			renderList( points, id );
-		}
-	}
-
-	function renderMap( points, id ) {
-		let selected;
-		const layer = L.geoJson(
-			points,
-			{
-				onEachFeature: ( feature, marker ) => {
-					marker.bindPopup( () => renderCard( feature ), {
-						minWidth: 305,
-						maxWidth: 305,
-					} );
-					if ( id && feature.properties.id === id ) {
-						selected = marker;
-					}
-				},
-			}
-		);
-		// It might be more performant to do clusterGroup.addLayers( points.getLayers() ).
-		clusterGroup.addLayer( layer );
-		if ( selected ) {
-			clusterGroup.zoomToShowLayer( selected, () => selected.openPopup() );
-		} else if ( points.length ) {
-			map.fitBounds( clusterGroup.getBounds() );
 		}
 	}
 
@@ -970,8 +982,6 @@
 	window.addEventListener( 'DOMContentLoaded', async (event) => {
 		const query = new URLSearchParams( document.location.search.slice( 1 ) );
 		const id = query.get( 'id' );
-
-		map.addLayer( clusterGroup );
 
 		if ( id ) {
 			document.body.className = 'view-map';
