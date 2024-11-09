@@ -3,3 +3,4 @@
 .oauth
 store.*
 overrides.php
+client/map-config.json

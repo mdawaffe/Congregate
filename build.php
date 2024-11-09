@@ -2,6 +2,12 @@
 
 namespace MDAWaffe\Swarm;
 
+$map_config_file = __DIR__ . '/client/map-config.json';
+
+if ( ! file_exists( $map_config_file ) ) {
+	symlink( '../map-config/tile.openstreetmap.org.json', $map_config_file );
+}
+
 function format_date( $timestamp, $timezone ) {
 	$date = new \DateTime( "@{$timestamp}", $timezone );
 	$date->setTimezone( $timezone );
