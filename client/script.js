@@ -743,8 +743,12 @@
 		stats.replaceChildren( content );
 	}
 
-	function serializeForm( form ) {
-		return new URLSearchParams( Array.from( new FormData( form ).entries() ).filter( ( [ key, value ] ) => value.length ) ).toString();
+	function serializeForm( form, removePage = false ) {
+		const params = new URLSearchParams( Array.from( new FormData( form ).entries() ).filter( ( [ key, value ] ) => value.length ) )
+		if ( removePage ) {
+			params.delete( 'page' );
+		}
+		return params.toString();
 	}
 
 	let hydrating = false;
@@ -850,12 +854,18 @@
 		}
 	}
 
-	async function processForm() {
+	async function processForm( event = false ) {
 		if ( hydrating ) {
 			return;
 		}
 
-		const queryString = serializeForm( form );
+		let removePage = false;
+		if ( event ) {
+			removePage = true;
+			form.elements.page.value = '';
+		}
+
+		const queryString = serializeForm( form, removePage );
 		if ( document.location.search.slice( 1 ) !== queryString ) {
 			history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
 		}
