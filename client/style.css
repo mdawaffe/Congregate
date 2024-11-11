@@ -29,6 +29,42 @@ nav form, nav form ul, nav form li, nav output, nav dl {
 	display: contents;
 }
 
+nav form fieldset {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	grid-column: span 2;
+	width: 300px;
+
+	label {
+		display: inline-block;
+		line-height: 1em;
+		border: 1px solid transparent;
+		border-radius: 1em;
+		padding: 0.25em .5em;
+		margin-block: .1em;
+		background-color: rgb( from royalblue r g b / 0.1 );
+
+		&:hover {
+			background-color: rgb( from royalblue r g b / 0.2 );
+			border-color: rgb( from royalblue r g b / 0.2 );
+		}
+
+		&:has( + input:checked ) {
+			background-color: royalblue;
+			color: #fff;
+
+			&:hover {
+				background-color: rgb( from royalblue r g b / 0.9 );
+			}
+		}
+	}
+
+	input {
+		display: none;
+	}
+}
+
 nav form input[type=reset] {
 	grid-column-start: 2;
 }
