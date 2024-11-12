@@ -74,6 +74,7 @@
 		const venueId = form.venue.value && venueIdRegExp.test( form.venue.value ) && form.venue.value.slice( 3 );
 		const venue = normalize( form.venue.value );
 		const venueRegExp = venue ? new RegExp( '\\b' + venue + '\\b' ) : null;
+		const text = form.elements.text.value.length ? form.elements.text.value.toLowerCase() : null;
 		const start = form.start.valueAsNumber ? form.start.valueAsNumber : null;
 		const end = form.end.valueAsNumber ? form.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
 		const category = form.category.value;
@@ -142,6 +143,12 @@
 					if ( ! venueRegExp.test( name ) ) {
 						return false;
 					}
+				}
+			}
+
+			if ( text ) {
+				if ( null === checkin.properties.text || ! checkin.properties.text.toLowerCase().includes( text ) ) {
+					return false;
 				}
 			}
 
