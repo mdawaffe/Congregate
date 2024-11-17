@@ -1,4 +1,4 @@
-import { initialize, addGeoJSON } from './map.js';
+import { GeoMap } from './map.js';
 
 function forEvent( object, eventName ) {
 	return new Promise( resolve => {
@@ -227,36 +227,6 @@ function filteredCheckins( form, checkins ) {
 	}
 
 	return filtered;
-}
-
-function initializeMap( checkins ) {
-	const map = initialize( 'map' );
-
-	const sourcePromise = addGeoJSON( map, 'checkins', {
-		type: "FeatureCollection",
-		features: checkins,
-	} );
-
-	async function render( points, id ) {
-		const source = await sourcePromise;
-
-		source.setData( {
-			type: "FeatureCollection",
-			features: points,
-		} );
-
-		if ( points.length ) {
-			const bounds = points.reduce( ( bounds, point ) => bounds.extend( point.geometry.coordinates ), new maplibregl.LngLatBounds );
-			const padding = 20;
-			const { center, zoom } = map.cameraForBounds( bounds, { padding } );
-			const currentZoom = map.getZoom();
-			const minZoom = Math.min( zoom, 20 );
-			// Speed could be tweaked, but using the difference gives decent results.
-			map.flyTo( { center, zoom: minZoom, speed: Math.abs( minZoom - currentZoom ) * 0.75, padding } );
-		}
-	}
-
-	return render;
 }
 
 function renderCard( checkin ) {
@@ -572,7 +542,7 @@ function renderForm( form, checkins ) {
 		list.replaceChildren();
 
 		if ( 'view-map' === document.body.className ) {
-			( await renderMap )( points, id );
+			map.update( points );
 		} else {
 			renderList( points, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
 		}
@@ -966,7 +936,8 @@ const locations = new Map;
 
 populateDataLists( form, checkins );
 
-const renderMap = initializeMap( checkins );
+const map = new GeoMap( document.getElementById( 'map' ) );
+map.onViewChanged( ( event ) => console.log( event ) );
 const renderPoints = renderForm( form, checkins );
 const processForm = createProcessForm( form, checkins );
 
