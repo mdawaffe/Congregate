@@ -79,6 +79,14 @@ function filteredCheckins( form, checkins ) {
 	const posts = form.posts.checked;
 	const likes = form.likes.checked;
 	const comments = form.comments.checked;
+	const bbox = form.elements.bbox.value
+		? maplibregl.LngLatBounds.convert(
+			form.elements.bbox.value
+				.split( ',' )
+				.map( parseFloat )
+				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
+		)
+		: null;
 
 	const states = new Map;
 
@@ -192,6 +200,10 @@ function filteredCheckins( form, checkins ) {
 		}
 
 		if ( comments && ! checkin.properties.comments.length ) {
+			return false;
+		}
+
+		if ( null !== bbox && ! bbox.contains( checkin.geometry.coordinates ) ) {
 			return false;
 		}
 
@@ -541,9 +553,8 @@ function renderForm( form, checkins ) {
 
 		list.replaceChildren();
 
-		if ( 'view-map' === document.body.className ) {
-			map.update( points );
-		} else {
+		map.update( points );
+		if ( 'view-map' !== document.body.className ) {
 			renderList( points, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
 		}
 	};
@@ -936,8 +947,19 @@ const locations = new Map;
 
 populateDataLists( form, checkins );
 
-const map = new GeoMap( document.getElementById( 'map' ) );
-map.onViewChanged( ( event ) => console.log( event ) );
+const mapContainer = document.querySelector( '.map' );
+const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
+map.onViewChanged( ( event ) => {
+	form.elements.bbox.value = event.target.getBounds().toArray().toString();
+	processForm( event );
+} );
+map.onResize( ( event ) => {
+	if ( mapContainer.parentElement.id === 'big-map' ) {
+		document.body.className = 'view-map';
+	} else {
+		document.body.className = 'view-list';
+	}
+} );
 const renderPoints = renderForm( form, checkins );
 const processForm = createProcessForm( form, checkins );
 
@@ -1024,6 +1046,7 @@ form.addEventListener( 'reset', event => {
 	window.setTimeout( async function() {
 		// Now the form is empty.
 		form.page.value = '';
+		form.bbox.value = '';
 		await processForm( event );
 	} );
 } );

@@ -15,11 +15,69 @@ function addProperties( features ) {
 	} ) );
 }
 
+class EmbiggenControl {
+	#smallContainer;
+	#bigContainer;
+	#isBig = false;
+	#button;
+	#map;
+
+	constructor( container ) {
+		this.#bigContainer = container;
+	}
+
+	onAdd( map ) {
+		this.#map = map;
+		this.#smallContainer = map.getContainer().parentNode;
+
+		const span = document.createElement( 'span' );
+		span.className = 'maplibregl-ctrl-icon';
+
+		const button = document.createElement( 'button' );
+		button.className = 'maplibregl-ctrl-fullscreen';
+		button.addEventListener( 'click', () => this.#toggle() );
+		button.append( span );
+
+		this.#button = button;
+
+		const div = document.createElement( 'div' );
+		div.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+		div.append( button );
+
+		return div;
+	}
+
+	onRemove() {
+		this.#smallContainer = null;
+		this.#bigContainer = null;
+		this.#isBig = false;
+		this.#button = null;
+		this.#map = null;
+	}
+
+	#toggle() {
+		this.#isBig = ! this.#isBig;
+
+		this.#button.classList.toggle( 'maplibregl-ctrl-fullscreen' );
+		this.#button.classList.toggle( 'maplibregl-ctrl-shrink' );
+
+		const bounds = this.#map.getBounds();
+
+		this.#map.once( 'resize', () => {
+			const newState = this.#map.cameraForBounds( bounds );
+			this.#map.jumpTo( newState );
+		} );
+		( this.#isBig ? this.#bigContainer : this.#smallContainer ).append( this.#map.getContainer() );
+	}
+}
+
 export class GeoMap {
 	#map;
 	#source;
 	#changeCallback;
 	#bboxHandler;
+	#resizeCallback;
+	#sizeHandler;
 
 	#load() {
 		const map = this.#map;
@@ -270,7 +328,11 @@ export class GeoMap {
 		this.#changeCallback = callback;
 	}
 
-	constructor( container ) {
+	onResize( callback ) {
+		this.#resizeCallback = callback;
+	}
+
+	constructor( container, embiggenedContainer ) {
 		const map = new maplibregl.Map( {
 			container,
 			style,
@@ -278,26 +340,47 @@ export class GeoMap {
 			center: [ 0, 0 ],
 			maxZoom: 24,
 			fadeDuration: 0,
+			attributionControl: false,
 //			hash: 'map',
 		} );
 
-		map.addControl( new maplibregl.ScaleControl );
+		const attributionControl = new maplibregl.AttributionControl;
+		const origOnAdd = attributionControl.onAdd.bind( attributionControl );
+		attributionControl.onAdd = ( map ) => {
+			const element = origOnAdd( map );
+			element.classList.remove( 'maplibregl-compact-show' );
+			element.removeAttribute( 'open' );
+			return element;
+		};
+
+		map.addControl( new EmbiggenControl( embiggenedContainer ) );
 		map.addControl( new maplibregl.NavigationControl );
+		map.addControl( attributionControl );
+		map.addControl( new maplibregl.ScaleControl );
 
 		this.#map = map;
 		this.#changeCallback = () => {};
+		this.#resizeCallback = () => {};
 
 		map.on( 'styleimagemissing', ( event ) => {
 			map.addImage( event.id, transparent );
 		} );
 
 		map.on( 'error', e => console.error( e ) );
-		map.on( 'load', () => this.#load() );
+		map.on( 'load', () => {
+			this.#load()
+		} );
 
 		this.#bboxHandler = ( event ) => {
 			return this.#changeCallback( event );
 		}
 
 		this.#on();
+
+		this.#sizeHandler = ( event ) => {
+			return this.#resizeCallback( event );
+		}
+
+		map.on( 'resize', this.#sizeHandler );
 	}
 }

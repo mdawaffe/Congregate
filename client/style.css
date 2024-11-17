@@ -1,13 +1,14 @@
 html, body {
 	padding: 0;
 	margin: 0;
-	height: 100%;
-	width: 100%;
+	box-sizing: border-box;
 }
 
-.view-list #map {
-	opacity: 0; /* display: none would interfere with Leaflet's rendering */
-	pointer-events: none;
+body {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5em;
+	padding: 0.5em;
 }
 
 .view-map #list {
@@ -15,14 +16,12 @@ html, body {
 }
 
 nav {
+	flex-shrink: 0;
 	box-sizing: border-box;
 	width: 300px;
-	position: absolute;
-	padding: 0.5em;
-
 	display: grid;
-	grid-template-columns: max-content auto;
-	gap: 0.25em 0.5em;
+	grid-template-columns: max-content 1fr;
+	gap: 0.25em 1em;
 }
 
 nav form, nav form ul, nav form li, nav output, nav dl {
@@ -34,7 +33,6 @@ nav form fieldset {
 	padding: 0;
 	border: 0;
 	grid-column: span 2;
-	width: calc( 300px - 1em );
 
 	label {
 		display: inline-block;
@@ -69,10 +67,9 @@ nav form input[type=reset] {
 	grid-column-start: 2;
 }
 
-nav p, nav h2 {
+nav h2 {
 	grid-column-start: 1;
 	grid-column-end: 3;
-	text-align: center;
 }
 
 nav h2 {
@@ -94,20 +91,31 @@ dd, dt {
 	font-weight: normal;
 }
 
-#map {
-	position: absolute; /* So that #map and #list can share the same space. Could use a grid instead */
-	z-index: 0;
-	height: 100%;
-	margin-left: 300px;
-	width: calc(100% - 300px);
+#small-map {
+	grid-column-start: 1;
+	grid-column-end: 3;
+}
+
+#small-map:empty {
+	height: 0px;
+}
+
+.map {
+	width: 100%;
+	aspect-ratio: 3 / 2;
+}
+
+.view {
+	display: grid;
+	width: 100%;
+}
+
+#list, #big-map {
+	grid-area: 1 / 1 / 2 / 2;
 }
 
 #list {
 	z-index: 1;
-	height: 100%;
-	margin-left: 300px;
-	width: calc(100% - 300px - 1em);
-	padding: 0.5em;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
@@ -154,7 +162,6 @@ article {
 h2 {
 	margin: 0;
 	padding: 0;
-	display: flex;
 	font-weight: normal;
 }
 
