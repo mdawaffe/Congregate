@@ -59,6 +59,8 @@
 					<label for="likes">Likes?</label> <input type="checkbox" name="likes" id="likes" value="1" />
 					<label for="comments">Comments?</label> <input type="checkbox" name="comments" id="comments" value="1" />
 				</fieldset>
+				<div id="small-map"><div class="map"></div></div>
+				<input type="hidden" name="bbox" value="" />
 				<input type="hidden" name="page" value="" />
 				<input type="reset" />
 				<datalist id="dates"></datalist>
@@ -78,14 +80,11 @@
 					<dd><a href="#" id="stats-locations">0</a></dd>
 				</dl>
 			</output>
-			<h2>View</h2>
-			<p>
-				<button id="view-list">📄</button>
-				<button id="view-map">🗺</button>
-			</p>
 		</nav>
-		<div id="map"></div>
-		<div id="list"></div>
+		<div class="view">
+			<div id="big-map"></div>
+			<div id="list"></div>
+		</div>
 		<dialog id="info" popover="auto"></dialog>
 		<dialog id="stats" popover="auto"></dialog>
 		<template id="checkin-card">
