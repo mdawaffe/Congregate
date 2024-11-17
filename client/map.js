@@ -354,7 +354,7 @@ export class GeoMap {
 		};
 
 		map.addControl( new EmbiggenControl( embiggenedContainer ) );
-		map.addControl( new maplibregl.NavigationControl );
+		map.addControl( new maplibregl.NavigationControl( { showCompass: false } ) );
 		map.addControl( attributionControl );
 		map.addControl( new maplibregl.ScaleControl );
 
