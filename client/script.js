@@ -57,6 +57,66 @@ function matches( needle, haystack ) {
 
 const venueIdRegExp = new RegExp( '^id:[0-9a-f]{24}$' );
 
+function filterForRegion( form, checkins ) {
+	const country = form.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+	const bbox = form.elements.bbox.value
+		? maplibregl.LngLatBounds.convert(
+			form.elements.bbox.value
+				.split( ',' )
+				.map( parseFloat )
+				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
+		)
+		: null;
+
+
+	const states = new Map;
+
+	const filtered = checkins.filter( checkin => {
+		if ( country ) {
+			const checkinCountry = formatCountry( checkin.properties.location?.country );
+			if ( checkinCountry === country && stateList.dataset.country !== country ) {
+				if ( checkin.properties.location.state ) {
+					states.set( checkin.properties.location.state.id, checkin.properties.location.state.name );
+				} else {
+					states.set( '-NONE-', '' );
+				}
+			}
+		}
+
+		return null === bbox ? true : bbox.contains( checkin.geometry.coordinates )
+	} );
+
+	if ( country ) {
+		form.state.disabled = false;
+		form.city.disabled = false;
+		if ( country !== stateList.dataset.country ) {
+			stateList.dataset.country = country;
+			stateList.replaceChildren();
+			if ( states.size > ( states.has( '-NONE-' ) ? 1 : 0 ) ) {
+				Array.from( states.entries() ).sort( ( a, b ) => ( a[1] || '' ).localeCompare( b[1] || '' ) ).forEach( ( [ id, name ] ) => {
+					const option = document.createElement( 'option' );
+					option.value = id;
+					if ( name && name !== id ) {
+						option.textContent = name;
+					}
+					stateList.appendChild( option );
+				} );
+			} else {
+				form.state.disabled = true;
+			}
+		}
+	} else {
+		stateList.dataset.country = false;
+		form.state.disabled = true;
+		form.city.disabled = true;
+		form.state.value = '';
+		form.city.value = '';
+		stateList.replaceChildren();
+	}
+
+	return filtered;
+}
+
 function filteredCheckins( form, checkins ) {
 	const venueId = form.venue.value && venueIdRegExp.test( form.venue.value ) && form.venue.value.slice( 3 );
 	const venue = normalize( form.venue.value );
@@ -79,16 +139,6 @@ function filteredCheckins( form, checkins ) {
 	const posts = form.posts.checked;
 	const likes = form.likes.checked;
 	const comments = form.comments.checked;
-	const bbox = form.elements.bbox.value
-		? maplibregl.LngLatBounds.convert(
-			form.elements.bbox.value
-				.split( ',' )
-				.map( parseFloat )
-				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
-		)
-		: null;
-
-	const states = new Map;
 
 	const filtered = checkins.filter( checkin => {
 		const date = new Date( checkin.properties.date.split( 'T' )[0] );
@@ -97,12 +147,6 @@ function filteredCheckins( form, checkins ) {
 			const checkinCountry = formatCountry( checkin.properties.location?.country );
 			if ( checkinCountry !== country ) {
 				return false;
-			} else if ( stateList.dataset.country !== country ) {
-				if ( checkin.properties.location.state ) {
-					states.set( checkin.properties.location.state.id, checkin.properties.location.state.name );
-				} else {
-					states.set( '-NONE-', '' );
-				}
 			}
 		}
 
@@ -203,40 +247,8 @@ function filteredCheckins( form, checkins ) {
 			return false;
 		}
 
-		if ( null !== bbox && ! bbox.contains( checkin.geometry.coordinates ) ) {
-			return false;
-		}
-
 		return true;
 	} );
-
-	if ( country ) {
-		form.state.disabled = false;
-		form.city.disabled = false;
-		if ( country !== stateList.dataset.country ) {
-			stateList.dataset.country = country;
-			stateList.replaceChildren();
-			if ( states.size > ( states.has( '-NONE-' ) ? 1 : 0 ) ) {
-				Array.from( states.entries() ).sort( ( a, b ) => ( a[1] || '' ).localeCompare( b[1] || '' ) ).forEach( ( [ id, name ] ) => {
-					const option = document.createElement( 'option' );
-					option.value = id;
-					if ( name && name !== id ) {
-						option.textContent = name;
-					}
-					stateList.appendChild( option );
-				} );
-			} else {
-				form.state.disabled = true;
-			}
-		}
-	} else {
-		stateList.dataset.country = false;
-		form.state.disabled = true;
-		form.city.disabled = true;
-		form.state.value = '';
-		form.city.value = '';
-		stateList.replaceChildren();
-	}
 
 	return filtered;
 }
@@ -522,7 +534,8 @@ function renderForm( form, checkins ) {
 		allowRender = false;
 		window.setTimeout( () => allowRender = true );
 
-		const points = filteredCheckins( form, checkins );
+		const worldPoints = filteredCheckins( form, checkins );
+		const regionPoints = filterForRegion( form, worldPoints );
 		const venues = new Set;
 		locations.clear();
 		let locationSource = 'country';
@@ -540,13 +553,13 @@ function renderForm( form, checkins ) {
 				locationParameter = 'state';
 			}
 		}
-		for ( const point of points ) {
+		for ( const point of regionPoints ) {
 			venues.add( point.properties.venue_id );
 			const location = point.properties.location[locationSource]?.name ?? point.properties.location[locationSource]?.id ?? point.properties.location[locationSource];
 			locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
 		}
 
-		outputCheckins.textContent = points.length.toLocaleString();
+		outputCheckins.textContent = regionPoints.length.toLocaleString();
 		outputVenues.textContent = venues.size.toLocaleString();
 		outputLocations.textContent = locations.size.toLocaleString();
 		outputLocationsLabel.textContent = locationLabel;
@@ -554,10 +567,10 @@ function renderForm( form, checkins ) {
 		list.replaceChildren();
 
 		if ( updateMap ) {
-			map.update( points );
+			map.update( worldPoints );
 		}
 		if ( 'view-map' !== document.body.className ) {
-			renderList( points, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
+			renderList( regionPoints, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
 		}
 	};
 }
