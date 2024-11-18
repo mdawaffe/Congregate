@@ -85,6 +85,7 @@ export class GeoMap {
 	#sizeHandler;
 	#loaded = false;
 	#didFirstUpdate = false;
+	#moveSubscription;
 
 	#wrappedOn( ...args ) {
 		const handler = args.pop();
@@ -98,7 +99,8 @@ export class GeoMap {
 			}
 		} );
 
-		return this.#map.on( ...args );
+		this.#map.on( ...args );
+		return args[ args.length - 1 ];
 	}
 
 	#load() {
@@ -302,10 +304,17 @@ export class GeoMap {
 	}
 
 	#on() {
-		this.#wrappedOn( 'moveend', this.#bboxHandler );
+		this.#moveSubscription = this.#wrappedOn( 'moveend', this.#bboxHandler );
 	}
 
-	update( features, { timing = 'instant' } = {} ) {
+	#off() {
+		if ( this.#moveSubscription ) {
+			this.#map.off( 'moveend', this.#moveSubscription );
+		}
+		this.#moveSubscription = null;
+	}
+
+	update( features, { resize = false } = {} ) {
 		const map = this.#map;
 
 		const updateSource = () => {
@@ -315,11 +324,13 @@ export class GeoMap {
 					features: addProperties( features ),
 				} );
 
-				if ( ! this.#didFirstUpdate ) {
+				if ( ! this.#didFirstUpdate || resize ) {
 					this.#didFirstUpdate = true;
 					const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
 					const padding = 20;
 					const { center, zoom } = map.cameraForBounds( bounds, { padding } );
+
+					this.#off();
 					map.jumpTo( { center, zoom, padding } );
 					this.#on();
 				}
