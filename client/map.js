@@ -15,6 +15,56 @@ function addProperties( features ) {
 	} ) );
 }
 
+class ZoomToBoundsControl {
+	#map;
+	#button;
+	#timeout;
+	#callback;
+
+	#click() {
+		this.#callback();
+	}
+
+	onAdd( map ) {
+		this.#map = map;
+
+		const span = document.createElement( 'span' );
+		span.textContent = '';
+		span.className = 'maplibregl-ctrl-icon';
+
+		const button = document.createElement( 'button' );
+		button.className = 'mdawaffe-ctrl-zoom-to-bounds maplibregl-ctrl-zoom-out';
+		button.addEventListener( 'click', () => this.#click() );
+		button.append( span );
+		button.style.display = 'none';
+		button.title = 'Zoom to Bounds';
+
+		this.#button = button;
+
+		this.#timeout = setTimeout( () => {
+			map.getContainer().querySelector( '.maplibregl-ctrl-zoom-in + .maplibregl-ctrl-zoom-out' ).after( button );
+			const image = window.getComputedStyle( span ).backgroundImage;
+			span.style.backgroundImage = `${ image }, ${ image }`;
+			span.style.backgroundPositionY = '-2.5px, 2.5px';
+			button.style.display = 'block';
+		}, 0 );
+
+		return button;
+	}
+
+	onRemove() {
+		this.#button = null;
+		this.#map = null;
+		clearTimeout( this.#timeout );
+		this.#timeout = null;
+		this.#callback = null;
+	}
+
+	constructor( callback ) {
+		this.#callback = callback;
+	}
+}
+
 class EmbiggenControl {
 	#smallContainer;
 	#bigContainer;
@@ -36,6 +86,7 @@ class EmbiggenControl {
 		const button = document.createElement( 'button' );
 		button.className = 'maplibregl-ctrl-fullscreen';
 		button.addEventListener( 'click', () => this.#toggle() );
+		button.title = 'Embiggen';
 		button.append( span );
 
 		this.#button = button;
@@ -60,6 +111,8 @@ class EmbiggenControl {
 
 		this.#button.classList.toggle( 'maplibregl-ctrl-fullscreen' );
 		this.#button.classList.toggle( 'maplibregl-ctrl-shrink' );
+
+		this.#button.title = this.#isBig ? 'Betiny' : 'Embiggen';
 
 		const bounds = this.#map.getBounds();
 
@@ -304,14 +357,42 @@ export class GeoMap {
 	}
 
 	#on() {
+		console.log( 'map on' );
 		this.#moveSubscription = this.#wrappedOn( 'moveend', this.#bboxHandler );
 	}
 
 	#off() {
+		console.log( 'map off' );
 		if ( this.#moveSubscription ) {
 			this.#map.off( 'moveend', this.#moveSubscription );
 		}
 		this.#moveSubscription = null;
+	}
+
+	async #resize( { features = null, animate = false } = {} ) {
+		if ( ! features ) {
+			const { features: checkins } = await this.#map.getSource( 'checkins' ).getData();
+			features = checkins;
+		}
+		const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+		if ( bounds.isEmpty() ) {
+			return;
+		}
+		const padding = 20;
+		const { center, zoom } = this.#map.cameraForBounds( bounds, { padding } );
+
+		this.#off();
+		if ( animate ) {
+			this.#map.flyTo( { center, zoom, padding } );
+		} else {
+			this.#map.jumpTo( { center, zoom, padding } );
+		}
+		// Normally, we'd want to turn the events #on() only after the flyTo() animation is done.
+		// Currently, the only times we animate the transition (non-resets) are alse the only times we
+		// want to update the form, so we just call #on() directly.
+		// (jumpTo() is instantaneous, so it doesn't matter how we call #on() for tha branchh.)
+		//this.#map.once( 'moveend', () => this.#on() );
+		this.#on();
 	}
 
 	update( features, { resize = false } = {} ) {
@@ -326,13 +407,7 @@ export class GeoMap {
 
 				if ( ! this.#didFirstUpdate || resize ) {
 					this.#didFirstUpdate = true;
-					const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
-					const padding = 20;
-					const { center, zoom } = map.cameraForBounds( bounds, { padding } );
-
-					this.#off();
-					map.jumpTo( { center, zoom, padding } );
-					this.#on();
+					this.#resize( { features } );
 				}
 			} catch ( e ) {
 				console.error( e );
@@ -377,6 +452,7 @@ export class GeoMap {
 		};
 
 		map.addControl( new EmbiggenControl( embiggenedContainer ) );
+		map.addControl( new ZoomToBoundsControl( () => this.#resize( { animate: true } ) ) );
 		map.addControl( new maplibregl.NavigationControl( { showCompass: false } ) );
 		map.addControl( attributionControl );
 		map.addControl( new maplibregl.ScaleControl );
