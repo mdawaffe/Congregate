@@ -157,6 +157,10 @@ article {
 	border-radius: 0.25em;
 	position: relative;
 	z-index: 0;
+
+	&.push-only {
+		background-color: #ffb;
+	}
 }
 
 h2 {
