@@ -64,8 +64,13 @@ class EmbiggenControl {
 		const bounds = this.#map.getBounds();
 
 		this.#map.once( 'resize', () => {
-			const newState = this.#map.cameraForBounds( bounds );
-			this.#map.jumpTo( newState );
+			try {
+				const newState = this.#map.cameraForBounds( bounds );
+				this.#map.jumpTo( newState );
+			} catch ( e ) {
+				console.error( e );
+				throw e;
+			}
 		} );
 		( this.#isBig ? this.#bigContainer : this.#smallContainer ).append( this.#map.getContainer() );
 	}
@@ -80,6 +85,21 @@ export class GeoMap {
 	#sizeHandler;
 	#loaded = false;
 	#didFirstUpdate = false;
+
+	#wrappedOn( ...args ) {
+		const handler = args.pop();
+
+		args.push( ( ...handlerArgs ) => {
+			try {
+				return handler( ...handlerArgs );
+			} catch ( e ) {
+				console.error( e );
+				throw e;
+			}
+		} );
+
+		return this.#map.on( ...args );
+	}
 
 	#load() {
 		const map = this.#map;
@@ -163,13 +183,13 @@ export class GeoMap {
 			},
 		} );
 
-		map.on( 'mouseenter', 'points', async function ( e ) {
+		this.#wrappedOn( 'mouseenter', 'points', async function ( e ) {
 			map.getCanvas().style.cursor = 'pointer';
 		} );
-		map.on( 'mouseleave', 'points', async function ( e ) {
+		this.#wrappedOn( 'mouseleave', 'points', async function ( e ) {
 			map.getCanvas().style.cursor = '';
 		} );
-		map.on( 'click', 'points', async function ( e ) {
+		this.#wrappedOn( 'click', 'points', async function ( e ) {
 			const features = map.queryRenderedFeatures( e.point, {
 				layers: [ 'points' ]
 			} );
@@ -181,7 +201,7 @@ export class GeoMap {
 			console.log( venueCounts );
 		} );
 
-		map.on( 'mouseenter', 'clusters', async function ( e ) {
+		this.#wrappedOn( 'mouseenter', 'clusters', async function ( e ) {
 			map.getCanvas().style.cursor = 'pointer';
 
 			const features = map.queryRenderedFeatures( e.point, {
@@ -219,7 +239,7 @@ export class GeoMap {
 				}
 			}, 'clusters' );
 		} );
-		map.on( 'mouseleave', 'clusters', async function ( e ) {
+		this.#wrappedOn( 'mouseleave', 'clusters', async function ( e ) {
 			map.getCanvas().style.cursor = '';
 
 			if ( map.getLayer( 'clusteroutline' ) ) {
@@ -229,7 +249,7 @@ export class GeoMap {
 				map.removeSource( 'clusteroutline' );
 			}
 		} );
-		map.on( 'click', 'clusters', async function ( e ) {
+		this.#wrappedOn( 'click', 'clusters', async function ( e ) {
 			const features = map.queryRenderedFeatures( e.point, {
 				layers: [ 'clusters' ]
 			} );
@@ -267,10 +287,10 @@ export class GeoMap {
 				} );
 			}
 		});
-		map.on( 'zoomstart', () => {
+		this.#wrappedOn( 'zoomstart', () => {
 			map.setLayoutProperty( 'cluster-count', 'visibility', 'none' );
 		} );
-		map.on( 'zoomend', () => {
+		this.#wrappedOn( 'zoomend', () => {
 			map.setLayoutProperty( 'cluster-count', 'visibility', 'visible' );
 			if ( map.getLayer( 'clusteroutline' ) ) {
 				map.removeLayer( 'clusteroutline' );
@@ -282,29 +302,30 @@ export class GeoMap {
 	}
 
 	#on() {
-		this.#map.on( 'moveend', this.#bboxHandler );
-	}
-
-	#off() {
-		this.#map.off( 'moveend', this.#bboxHandler );
+		this.#wrappedOn( 'moveend', this.#bboxHandler );
 	}
 
 	update( features, { timing = 'instant' } = {} ) {
 		const map = this.#map;
 
 		const updateSource = () => {
-			this.#source.setData( {
-				type: 'FeatureCollection',
-				features: addProperties( features ),
-			} );
+			try {
+				this.#source.setData( {
+					type: 'FeatureCollection',
+					features: addProperties( features ),
+				} );
 
-			if ( ! this.#didFirstUpdate ) {
-				this.#didFirstUpdate = true;
-				const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
-				const padding = 20;
-				const { center, zoom } = map.cameraForBounds( bounds, { padding } );
-				map.jumpTo( { center, zoom, padding } );
-				this.#on();
+				if ( ! this.#didFirstUpdate ) {
+					this.#didFirstUpdate = true;
+					const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+					const padding = 20;
+					const { center, zoom } = map.cameraForBounds( bounds, { padding } );
+					map.jumpTo( { center, zoom, padding } );
+					this.#on();
+				}
+			} catch ( e ) {
+				console.error( e );
+				throw e;
 			}
 		};
 
@@ -353,12 +374,12 @@ export class GeoMap {
 		this.#changeCallback = () => {};
 		this.#resizeCallback = () => {};
 
-		map.on( 'styleimagemissing', ( event ) => {
+		this.#wrappedOn( 'styleimagemissing', ( event ) => {
 			map.addImage( event.id, transparent );
 		} );
 
 		map.on( 'error', e => console.error( e ) );
-		map.on( 'load', () => {
+		this.#wrappedOn( 'load', () => {
 			this.#loaded = true;
 			this.#load()
 		} );
@@ -371,6 +392,6 @@ export class GeoMap {
 			return this.#resizeCallback( event );
 		}
 
-		map.on( 'resize', this.#sizeHandler );
+		this.#wrappedOn( 'resize', this.#sizeHandler );
 	}
 }
