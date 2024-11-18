@@ -514,7 +514,7 @@ function renderForm( form, checkins ) {
 	const list = document.getElementById( 'list' );
 
 	// renderPoints( id )
-	return async ( id ) => {
+	return async ( id, updateMap = true ) => {
 		if ( ! allowRender ) {
 			return;
 		}
@@ -553,7 +553,9 @@ function renderForm( form, checkins ) {
 
 		list.replaceChildren();
 
-		map.update( points );
+		if ( updateMap ) {
+			map.update( points );
+		}
 		if ( 'view-map' !== document.body.className ) {
 			renderList( points, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
 		}
@@ -848,7 +850,7 @@ function updateDateList( form ) {
 
 function createProcessForm( form, checkins ) {
 	// processForm( event = false )
-	return async ( event = false ) => {
+	return async ( event = false, updateMap = true ) => {
 		if ( hydrating ) {
 			return;
 		}
@@ -865,7 +867,7 @@ function createProcessForm( form, checkins ) {
 		}
 
 		updateDateList( form );
-		await renderPoints();
+		await renderPoints( false, updateMap );
 	};
 }
 
@@ -951,7 +953,7 @@ const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( event ) => {
 	form.elements.bbox.value = event.target.getBounds().toArray().toString();
-	processForm( event );
+	processForm( event, false );
 } );
 map.onResize( ( event ) => {
 	if ( mapContainer.parentElement.id === 'big-map' ) {
