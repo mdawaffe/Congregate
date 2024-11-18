@@ -79,6 +79,7 @@ export class GeoMap {
 	#resizeCallback;
 	#sizeHandler;
 	#loaded = false;
+	#didFirstUpdate = false;
 
 	#load() {
 		const map = this.#map;
@@ -292,30 +293,19 @@ export class GeoMap {
 		const map = this.#map;
 
 		const updateSource = () => {
-			this.#off();
-
 			this.#source.setData( {
 				type: 'FeatureCollection',
 				features: addProperties( features ),
 			} );
 
-
-			const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
-			const padding = 20;
-			const { center, zoom: boundsZoom } = map.cameraForBounds( bounds, { padding } );
-			const currentZoom = map.getZoom();
-			const zoom = Math.min( boundsZoom, 20 );
-			switch ( timing ) {
-				case 'instant' :
-					map.jumpTo( { center, zoom, padding } );
-					break;
-				default :
-					// Speed could be tweaked, but using the difference gives decent results.
-					map.flyTo( { center, zoom, speed: Math.abs( minZoom - currentZoom ) * 0.75, padding } );
-					break;
+			if ( ! this.#didFirstUpdate ) {
+				this.#didFirstUpdate = true;
+				const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+				const padding = 20;
+				const { center, zoom } = map.cameraForBounds( bounds, { padding } );
+				map.jumpTo( { center, zoom, padding } );
+				this.#on();
 			}
-
-			this.#on();
 		};
 
 		if ( this.#loaded ) {
@@ -376,8 +366,6 @@ export class GeoMap {
 		this.#bboxHandler = ( event ) => {
 			return this.#changeCallback( event );
 		}
-
-		this.#on();
 
 		this.#sizeHandler = ( event ) => {
 			return this.#resizeCallback( event );
