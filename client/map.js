@@ -78,6 +78,7 @@ export class GeoMap {
 	#bboxHandler;
 	#resizeCallback;
 	#sizeHandler;
+	#loaded = false;
 
 	#load() {
 		const map = this.#map;
@@ -317,7 +318,7 @@ export class GeoMap {
 			this.#on();
 		};
 
-		if ( map.loaded() ) {
+		if ( this.#loaded ) {
 			updateSource();
 		} else {
 			map.on( 'load', () => updateSource() );
@@ -368,6 +369,7 @@ export class GeoMap {
 
 		map.on( 'error', e => console.error( e ) );
 		map.on( 'load', () => {
+			this.#loaded = true;
 			this.#load()
 		} );
 
