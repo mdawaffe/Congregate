@@ -678,7 +678,7 @@ function renderStats( locations ) {
 		const link = document.createElement( 'a' );
 		link.textContent = location;
 		const currentURL = new URL( document.location.href );
-		const locationID = [ ...states.querySelectorAll( 'option' ) ].find( option => option.textContent == location )?.value ?? location;
+		const locationID = [ ...stateList.querySelectorAll( 'option' ) ].find( option => option.textContent == location )?.value ?? location;
 		currentURL.searchParams.append( locationParameter, locationID );
 		currentURL.searchParams.delete( 'page' );
 		link.href = currentURL.toString();
