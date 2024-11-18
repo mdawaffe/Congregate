@@ -590,6 +590,9 @@ function renderList( points, currentPage, id ) {
 	for ( const point of displayPoints ) {
 		const article = document.createElement( 'article' );
 		article.appendChild( renderCard( point ) );
+		if ( 'P' === ( point.properties.source ?? null ) ) {
+			article.classList.add( 'push-only' );
+		}
 		listItems.appendChild( article );
 	}
 

@@ -363,10 +363,13 @@ function build( $source_files = null ) {
 
 	foreach ( $checkin_basenames as $checkin_basename ) {
 		$checkin_file = sprintf( '%s/store/full/checkins/%s', __DIR__, $checkin_basename );
+		$source = 'F';
 		if ( ! file_exists( $checkin_file ) ) {
 			$checkin_file = sprintf( '%s/store/checkins/%s', __DIR__, $checkin_basename );
+			$source = 'S';
 			if ( ! file_exists( $checkin_file ) ) {
 				$checkin_file = sprintf( '%s/store/push/checkins/%s', __DIR__, $checkin_basename );
+				$source = 'P';
 			}
 		}
 		$checkin = json_decode( file_get_contents( $checkin_file ), true );
@@ -525,6 +528,7 @@ function build( $source_files = null ) {
 				'checkins' => $checkin['venue']['stats']['checkinsCount'] ?? $checkin['venue']['stats']['checkinsCount'] ?? 0,
 			],
 			'score' => format_score( $checkin ),
+			'source' => $source,
 		];
 
 		if ( isset( $overrides[$checkin['id']] ) ) {
