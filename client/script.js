@@ -68,7 +68,6 @@ function filterForRegion( form, checkins ) {
 		)
 		: null;
 
-
 	const states = new Map;
 
 	const filtered = checkins.filter( checkin => {
@@ -751,25 +750,15 @@ function countryFlag( country ) {
 	return id.split( '' ).map( c => String.fromCodePoint( ( c.codePointAt() - 65 ) + 0x1F1E6 ) ).join( '' );
 }
 
-function serializeForm( form, removePage = false ) {
+function serializeForm( form ) {
 	const params = new URLSearchParams( Array.from( new FormData( form ).entries() ).filter( ( [ key, value ] ) => value.length ) )
-	if ( removePage ) {
-		params.delete( 'page' );
-	}
 	return params.toString();
 }
 
-let hydrating = false;
 function hydrateForm( form, query ) {
-	hydrating = true;
 	const elements = form.elements;
-	form.reset();
 
-	const isInit = query ? false : true;
-	if ( isInit ) {
-		query = new URLSearchParams( document.location.search.slice( 1 ) );
-	}
-
+	form.reset(); // also clears page and bbox via the reset event handler.
 	for ( const [ key, value ] of query ) {
 		if ( ! elements[key] ) {
 			continue;
@@ -784,13 +773,8 @@ function hydrateForm( form, query ) {
 				break;
 		}
 	}
-	if ( ! query.has( 'page' ) ) {
-		elements.page.value = '';
-	}
-	hydrating = false;
-	if ( ! isInit ) {
-		processForm();
-	}
+
+	// processForm is called by the reset event handler.
 }
 
 function updateDateList( form ) {
@@ -864,27 +848,20 @@ function updateDateList( form ) {
 	}
 }
 
-function createProcessForm( form, checkins ) {
-	// processForm( event = false )
-	return async ( event = false, args ) => {
-		if ( hydrating ) {
-			return;
-		}
+async function onFormUserInteraction( args ) {
+	form.elements.page.value = '';
 
-		let removePage = false;
-		if ( event ) {
-			removePage = true;
-			form.elements.page.value = '';
-		}
+	await processForm( form, args )
+}
 
-		const queryString = serializeForm( form, removePage );
-		if ( document.location.search.slice( 1 ) !== queryString ) {
-			history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
-		}
+async function processForm( form, args ) {
+	const queryString = serializeForm( form );
+	if ( document.location.search.slice( 1 ) !== queryString ) {
+		history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
+	}
 
-		updateDateList( form );
-		await renderPoints( false, args );
-	};
+	updateDateList( form );
+	await renderPoints( false, args );
 }
 
 async function clipboardWrite( text ) {
@@ -969,7 +946,7 @@ const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( event ) => {
 	form.elements.bbox.value = event.target.getBounds().toArray().toString();
-	processForm( event, { updateMap: false } );
+	onFormUserInteraction( { updateMap: false } );
 } );
 map.onResize( ( event ) => {
 	if ( mapContainer.parentElement.id === 'big-map' ) {
@@ -979,7 +956,6 @@ map.onResize( ( event ) => {
 	}
 } );
 const renderPoints = renderForm( form, checkins );
-const processForm = createProcessForm( form, checkins );
 
 const statsClick = createStatsClick();
 const infoClick = createInfoClick();
@@ -1021,13 +997,6 @@ document.body.addEventListener( 'click', event => {
 		return;
 	}
 
-	if ( event.target.matches( 'nav button' ) ) {
-		document.body.className = event.target.id;
-		form.page.value = '';
-		renderPoints();
-		return;
-	}
-
 	if ( event.target.matches( '.pages a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
@@ -1054,18 +1023,16 @@ form.addEventListener( 'submit', event => {
 	event.preventDefault();
 } );
 
-form.addEventListener( 'change', processForm );
-form.addEventListener( 'search', processForm );
+form.addEventListener( 'change', () => onFormUserInteraction() );
+form.addEventListener( 'search', () => onFormUserInteraction() );
 form.addEventListener( 'reset', event => {
-	if ( hydrating ) {
-		return;
-	}
+	event.target.elements.page.value = '';
+	event.target.elements.bbox.value = '';
+
 	// The form is still filled.
-	window.setTimeout( async function() {
+	window.setTimeout( function() {
 		// Now the form is empty.
-		form.page.value = '';
-		form.bbox.value = '';
-		await processForm( event, { isReset: true } );
+		processForm( event.target, { isReset: true } );
 	} );
 } );
 
@@ -1083,7 +1050,7 @@ if ( id ) {
 	await renderPoints( id );
 } else {
 	if ( query.toString().length ) {
-		hydrateForm( form );
+		hydrateForm( form, query );
 	}
 	await renderPoints();
 }
