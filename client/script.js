@@ -848,10 +848,21 @@ function updateDateList( form ) {
 	}
 }
 
-async function onFormUserInteraction( args ) {
+let debouncing = false;
+function onFormUserInteraction( args ) {
 	form.elements.page.value = '';
 
-	await processForm( form, args )
+	// We sometimes get a change event (click a checkbox, e.g.)
+	// We sometimes get a search event (click the clear field button in a search input, e.g.)
+	// We sometimes get both events (type something into a search input and hit enter, e.g.)
+	// We don't care which event(s) we get, but we only need to process one.
+	if ( ! debouncing ) {
+		debouncing = true;
+		window.setTimeout( () => {
+			debouncing = false;
+			processForm( form, args )
+		} );
+	}
 }
 
 async function processForm( form, args ) {
