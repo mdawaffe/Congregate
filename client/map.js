@@ -139,7 +139,7 @@ export class GeoMap {
 	#resizeCallback;
 	#sizeHandler;
 	#loaded = false;
-	#didFirstUpdate = false;
+	#fullBbox;
 	#moveSubscription;
 
 	#wrappedOn( ...args ) {
@@ -359,28 +359,38 @@ export class GeoMap {
 	}
 
 	#on() {
-		console.log( 'map on' );
 		this.#moveSubscription = this.#wrappedOn( 'moveend', this.#bboxHandler );
 	}
 
 	#off() {
-		console.log( 'map off' );
 		if ( this.#moveSubscription ) {
 			this.#map.off( 'moveend', this.#moveSubscription );
 		}
 		this.#moveSubscription = null;
 	}
 
-	async #resize( { features = null, animate = false } = {} ) {
+	async #resize( { features = null, animate = false, bbox = '' } = {} ) {
 		if ( ! features ) {
 			const { features: checkins } = await this.#map.getSource( 'checkins' ).getData();
 			features = checkins;
 		}
-		const bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+
+		let bounds;
+		let padding = 0;
+		if ( '' !== bbox ) {
+			if ( this.bboxFromBounds( this.#map.getBounds() ) === bbox ) {
+				return;
+			}
+			bounds = this.boundsFromBbox( bbox );
+		}
+
+		if ( ! bounds ) {
+			bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+			padding = 20;
+		}
 		if ( bounds.isEmpty() ) {
 			return;
 		}
-		const padding = 20;
 		const { center, zoom } = this.#map.cameraForBounds( bounds, { padding } );
 
 		this.#off();
@@ -390,14 +400,15 @@ export class GeoMap {
 			this.#map.jumpTo( { center, zoom, padding } );
 		}
 		// Normally, we'd want to turn the events #on() only after the flyTo() animation is done.
-		// Currently, the only times we animate the transition (non-resets) are alse the only times we
-		// want to update the form, so we just call #on() directly.
+		// Currently, the only times we animate the transition (clicking zoom-to-bounds or clicking on cluster)
+		// are alse the only times we want to update the form, so we just call #on() directly.
+		// @todo Clicking on cluster currently does its own animation. Consolidate that here.
 		// (jumpTo() is instantaneous, so it doesn't matter how we call #on() for tha branchh.)
 		//this.#map.once( 'moveend', () => this.#on() );
 		this.#on();
 	}
 
-	update( features, { resize = false } = {} ) {
+	update( features, { bbox = '' } = {} ) {
 		const map = this.#map;
 
 		const updateSource = () => {
@@ -407,9 +418,13 @@ export class GeoMap {
 					features: addProperties( features ),
 				} );
 
-				if ( ! this.#didFirstUpdate || resize ) {
-					this.#didFirstUpdate = true;
+				if ( ! this.#fullBbox ) {
 					this.#resize( { features } );
+					this.#fullBbox = this.bboxFromBounds( map.getBounds() );
+				} else if ( '' === bbox ) {
+					this.#resize( { features, bbox: this.#fullBbox } );
+				} else {
+					this.#resize( { features, bbox } );
 				}
 			} catch ( e ) {
 				console.error( e );
@@ -430,6 +445,19 @@ export class GeoMap {
 
 	onResize( callback ) {
 		this.#resizeCallback = callback;
+	}
+
+	boundsFromBbox( bbox ) {
+		return maplibregl.LngLatBounds.convert(
+			bbox
+				.split( ',' )
+				.map( parseFloat )
+				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
+		);
+	}
+
+	bboxFromBounds( bounds ) {
+		return bounds.toArray().flat().map( c => Math.round( c * 100000 ) / 100000 ).toString();
 	}
 
 	constructor( container, embiggenedContainer ) {
@@ -474,11 +502,11 @@ export class GeoMap {
 		} );
 
 		this.#bboxHandler = ( event ) => {
-			return this.#changeCallback( event );
+			return this.#changeCallback( { event, bbox: this.bboxFromBounds( event.target.getBounds() ) } );
 		}
 
 		this.#sizeHandler = ( event ) => {
-			return this.#resizeCallback( event );
+			return this.#resizeCallback( { event } );
 		}
 
 		this.#wrappedOn( 'resize', this.#sizeHandler );
