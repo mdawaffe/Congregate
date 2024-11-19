@@ -38,6 +38,7 @@ class ZoomToBoundsControl {
 		button.append( span );
 		button.style.display = 'none';
 		button.title = 'Zoom to Bounds';
+		button.type = 'button';
 
 		this.#button = button;
 
@@ -87,6 +88,7 @@ class EmbiggenControl {
 		button.className = 'maplibregl-ctrl-fullscreen';
 		button.addEventListener( 'click', () => this.#toggle() );
 		button.title = 'Embiggen';
+		button.type = 'button';
 		button.append( span );
 
 		this.#button = button;
