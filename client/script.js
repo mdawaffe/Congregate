@@ -133,6 +133,7 @@ function filteredCheckins( form, checkins ) {
 	const posts = form.posts.checked;
 	const likes = form.likes.checked;
 	const comments = form.comments.checked;
+	const source = form.source.value;
 
 	const filtered = checkins.filter( checkin => {
 		const date = new Date( checkin.properties.date.split( 'T' )[0] );
@@ -238,6 +239,10 @@ function filteredCheckins( form, checkins ) {
 		}
 
 		if ( comments && ! checkin.properties.comments.length ) {
+			return false;
+		}
+
+		if ( source && checkin.properties.source !== source ) {
 			return false;
 		}
 
@@ -1020,6 +1025,7 @@ form.addEventListener( 'search', () => onFormUserInteraction() );
 form.addEventListener( 'reset', event => {
 	event.target.elements.page.value = '';
 	event.target.elements.bbox.value = '';
+	event.target.elements.source.value = '';
 
 	// The form is still filled.
 	window.setTimeout( function() {
