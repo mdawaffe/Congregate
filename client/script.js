@@ -60,12 +60,7 @@ const venueIdRegExp = new RegExp( '^id:[0-9a-f]{24}$' );
 function filterForRegion( form, checkins ) {
 	const country = form.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 	const bbox = form.elements.bbox.value
-		? maplibregl.LngLatBounds.convert(
-			form.elements.bbox.value
-				.split( ',' )
-				.map( parseFloat )
-				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
-		)
+		? map.boundsFromBbox( form.elements.bbox.value )
 		: null;
 
 	const states = new Map;
@@ -517,61 +512,45 @@ function renderCard( checkin ) {
 	return content;
 }
 
-// search event fires when search field changes or when the search input's clear control is clicked
-// change event fires when search field changes
-// debounce that search+change event
-let allowRender = true;
-function renderForm( form, checkins ) {
-	const list = document.getElementById( 'list' );
+function renderPoints( form, { id = false, updateMap = true } = {} ) {
+	const worldPoints = filteredCheckins( form, checkins );
+	const regionPoints = filterForRegion( form, worldPoints );
+	const venues = new Set;
+	locations.clear();
+	let locationSource = 'country';
+	let locationLabel = 'Countries';
+	locationParameter = 'country';
 
-	// renderPoints( id )
-	return async ( id, { updateMap = true, isReset = false } = {} ) => {
-		if ( ! allowRender ) {
-			return;
+	if ( form.country.value ) {
+		if ( form.state.value || form.state.disabled ) {
+			locationSource = 'city';
+			locationLabel = 'Cities';
+			locationParameter = 'city';
+		} else {
+			locationSource = 'state';
+			locationLabel = 'States';
+			locationParameter = 'state';
 		}
+	}
+	for ( const point of regionPoints ) {
+		venues.add( point.properties.venue_id );
+		const location = point.properties.location[locationSource]?.name ?? point.properties.location[locationSource]?.id ?? point.properties.location[locationSource];
+		locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
+	}
 
-		allowRender = false;
-		window.setTimeout( () => allowRender = true );
+	outputCheckins.textContent = regionPoints.length.toLocaleString();
+	outputVenues.textContent = venues.size.toLocaleString();
+	outputLocations.textContent = locations.size.toLocaleString();
+	outputLocationsLabel.textContent = locationLabel;
 
-		const worldPoints = filteredCheckins( form, checkins );
-		const regionPoints = filterForRegion( form, worldPoints );
-		const venues = new Set;
-		locations.clear();
-		let locationSource = 'country';
-		let locationLabel = 'Countries';
-		locationParameter = 'country';
+	list.replaceChildren();
 
-		if ( form.country.value ) {
-			if ( form.state.value || form.state.disabled ) {
-				locationSource = 'city';
-				locationLabel = 'Cities';
-				locationParameter = 'city';
-			} else {
-				locationSource = 'state';
-				locationLabel = 'States';
-				locationParameter = 'state';
-			}
-		}
-		for ( const point of regionPoints ) {
-			venues.add( point.properties.venue_id );
-			const location = point.properties.location[locationSource]?.name ?? point.properties.location[locationSource]?.id ?? point.properties.location[locationSource];
-			locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
-		}
-
-		outputCheckins.textContent = regionPoints.length.toLocaleString();
-		outputVenues.textContent = venues.size.toLocaleString();
-		outputLocations.textContent = locations.size.toLocaleString();
-		outputLocationsLabel.textContent = locationLabel;
-
-		list.replaceChildren();
-
-		if ( updateMap || isReset ) {
-			map.update( worldPoints, { resize: isReset } );
-		}
-		if ( 'view-map' !== document.body.className ) {
-			renderList( regionPoints, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
-		}
-	};
+	if ( updateMap ) {
+		map.update( worldPoints, { bbox: form.elements.bbox.value } );
+	}
+	if ( 'view-map' !== document.body.className ) {
+		renderList( regionPoints, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
+	}
 }
 
 function renderList( points, currentPage, id ) {
@@ -759,6 +738,7 @@ function hydrateForm( form, query ) {
 	const elements = form.elements;
 
 	form.reset(); // also clears page and bbox via the reset event handler.
+
 	for ( const [ key, value ] of query ) {
 		if ( ! elements[key] ) {
 			continue;
@@ -856,23 +836,24 @@ function onFormUserInteraction( args ) {
 	// We sometimes get a search event (click the clear field button in a search input, e.g.)
 	// We sometimes get both events (type something into a search input and hit enter, e.g.)
 	// We don't care which event(s) we get, but we only need to process one.
-	if ( ! debouncing ) {
-		debouncing = true;
-		window.setTimeout( () => {
-			debouncing = false;
-			processForm( form, args )
-		} );
+	if ( debouncing ) {
+		return;
 	}
+
+	debouncing = true;
+	window.setTimeout( () => debouncing = false );
+
+	processForm( form, args )
 }
 
-async function processForm( form, args ) {
+function processForm( form, args ) {
 	const queryString = serializeForm( form );
 	if ( document.location.search.slice( 1 ) !== queryString ) {
 		history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
 	}
 
 	updateDateList( form );
-	await renderPoints( false, args );
+	renderPoints( form, args );
 }
 
 async function clipboardWrite( text ) {
@@ -935,6 +916,7 @@ const checkinsRequest = await fetch( './checkins/checkins.geo.json' );
 const checkins = await checkinsRequest.json();
 
 const form = document.querySelector( 'form' );
+const list = document.getElementById( 'list' );
 const stateList = document.getElementById( 'states' );
 
 const outputCheckins = document.getElementById( 'stats-checkins' );
@@ -955,18 +937,17 @@ populateDataLists( form, checkins );
 
 const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
-map.onViewChanged( ( event ) => {
-	form.elements.bbox.value = event.target.getBounds().toArray().toString();
+map.onViewChanged( ( { bbox } ) => {
+	form.elements.bbox.value = bbox;
 	onFormUserInteraction( { updateMap: false } );
 } );
-map.onResize( ( event ) => {
+map.onResize( () => {
 	if ( mapContainer.parentElement.id === 'big-map' ) {
 		document.body.className = 'view-map';
 	} else {
 		document.body.className = 'view-list';
 	}
 } );
-const renderPoints = renderForm( form, checkins );
 
 const statsClick = createStatsClick();
 const infoClick = createInfoClick();
@@ -1043,7 +1024,7 @@ form.addEventListener( 'reset', event => {
 	// The form is still filled.
 	window.setTimeout( function() {
 		// Now the form is empty.
-		processForm( event.target, { isReset: true } );
+		processForm( event.target );
 	} );
 } );
 
@@ -1058,10 +1039,11 @@ const id = query.get( 'id' );
 
 if ( id ) {
 	document.body.className = 'view-map';
-	await renderPoints( id );
+	map.update( checkins ); // To set the full bounds of the map.
+	renderPoints( form, { id } );
+} else if ( query.toString().length ) {
+	map.update( checkins ); // To set the full bounds of the map.
+	hydrateForm( form, query );
 } else {
-	if ( query.toString().length ) {
-		hydrateForm( form, query );
-	}
-	await renderPoints();
+	renderPoints( form ); // We're rendering all points, so we get the full bounds for free.
 }
