@@ -1,6 +1,10 @@
 import { GeoMap } from './map.js';
 import { Form } from './form.js';
-import { formatCountry, countryFlag } from './formatting.js';
+import {
+	countryFlag,
+	formatCountry,
+	formatDate,
+} from './formatting.js';
 
 function forEvent( object, eventName ) {
 	return new Promise( resolve => {
@@ -14,26 +18,6 @@ function forEvent( object, eventName ) {
 
 function normalize( string ) {
 	return string.normalize( 'NFKD' ).toLowerCase().replace( /\s+/g, ' ' ).replace( /[^a-z0-9 ]/g, '' );
-}
-
-function formatDate( dateString ) {
-	// Temporal cannot come soon enough.
-	const tz = dateString.slice( -6 );
-	const hours = parseInt( tz, 10 );
-	const sign = hours < 0 ? -1 : 1;
-	const minutes = parseInt( tz.slice( -2 ), 10 );
-
-	const local = ( new Date( Date.parse( dateString ) + sign * ( Math.abs( hours ) * 60 * 60 + minutes * 60 ) * 1000 ) );
-
-	return [
-		local.toLocaleString( undefined, { year: 'numeric', timeZone: 'UTC' } ),
-		'/',
-		local.toLocaleString( undefined, { month: '2-digit', timeZone: 'UTC' } ),
-		'/',
-		local.toLocaleString( undefined, { day: '2-digit', timeZone: 'UTC' } ),
-		' ',
-		local.toLocaleString( undefined, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' } ),
-	].join( '' );
 }
 
 function matches( needle, haystack ) {
@@ -685,11 +669,6 @@ function renderStats( locations ) {
 	stats.replaceChildren( content );
 }
 
-function serializeForm( formContainer ) {
-	const params = new URLSearchParams( Array.from( new FormData( formContainer ).entries() ).filter( ( [ key, value ] ) => value.length ) )
-	return params.toString();
-}
-
 function hydrateForm( formContainer, query ) {
 	const elements = formContainer.elements;
 
@@ -713,77 +692,6 @@ function hydrateForm( formContainer, query ) {
 	// processForm is called by the reset event handler.
 }
 
-function updateDateList( formContainer ) {
-	const dateList = document.getElementById( 'dates' );
-
-	const dateElement = document.createElement( 'input' );
-	dateElement.type = 'date';
-
-	let suggested = [];
-	if ( formContainer.start.value && ! formContainer.end.value ) {
-		dateElement.valueAsNumber = formContainer.start.valueAsNumber + 1000 * 60 * 60 * 24 * 6;
-		const oneWeek = dateElement.value;
-
-		dateElement.value = formContainer.start.value;
-		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
-		dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() + 1 );
-		const oneMonth = dateElement.value;
-
-		dateElement.value = formContainer.start.value;
-		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
-		dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() + 1 );
-		const oneYear = dateElement.value;
-
-		suggested = [
-			[ formContainer.start.value, 'One day' ],
-			[ oneWeek, 'One week' ],
-			[ oneMonth, 'One month' ],
-			[ oneYear, 'One year' ],
-		];
-		formContainer.start.removeAttribute( 'list' );
-		formContainer.end.setAttribute( 'list', 'dates' );
-	} else if ( ! formContainer.start.value && formContainer.end.value ) {
-		dateElement.valueAsNumber = formContainer.end.valueAsNumber - 1000 * 60 * 60 * 24 * 6;
-		const oneWeek = dateElement.value;
-
-		dateElement.value = formContainer.end.value;
-		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
-		dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() - 1 );
-		const oneMonth = dateElement.value;
-
-		dateElement.value = formContainer.end.value;
-		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
-		dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() - 1 );
-		const oneYear = dateElement.value;
-
-		suggested = [
-			[ formContainer.end.value, 'One day' ],
-			[ oneWeek, 'One week' ],
-			[ oneMonth, 'One month' ],
-			[ oneYear, 'One year' ],
-		];
-		formContainer.end.removeAttribute( 'list' );
-		formContainer.start.setAttribute( 'list', 'dates' );
-	} else if ( ! formContainer.start.value && ! formContainer.end.value ) {
-		dateList.replaceChildren();
-		return;
-	}
-
-	if ( ! suggested.length ) {
-		// Don't change the datalist. This way, you can pick "One day" then change your mind and pick "One week".
-		return;
-	}
-
-	dateList.replaceChildren();
-
-	for ( const [ value, label ] of suggested ) {
-		const option = document.createElement( 'option' );
-		option.value = value;
-		option.textContent = label;
-		dateList.appendChild( option );
-	}
-}
-
 let debouncing = false;
 function onFormUserInteraction( args ) {
 	formContainer.elements.page.value = '';
@@ -799,17 +707,7 @@ function onFormUserInteraction( args ) {
 	debouncing = true;
 	window.setTimeout( () => debouncing = false );
 
-	processForm( formContainer, args )
-}
-
-function processForm( formContainer, args ) {
-	const queryString = serializeForm( formContainer );
-	if ( document.location.search.slice( 1 ) !== queryString ) {
-		history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
-	}
-
-	updateDateList( formContainer );
-	renderPoints( formContainer, args );
+	form.processForm( args )
 }
 
 async function clipboardWrite( text ) {
@@ -970,8 +868,8 @@ document.getElementById( 'country' ).addEventListener( 'change', event => {
 	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 } );
 
-formContainer.addEventListener( 'submit', event => {
-	event.preventDefault();
+form.addEventListener( 'change', ( event ) => {
+	renderPoints( formContainer, event.state );
 } );
 
 formContainer.addEventListener( 'change', () => onFormUserInteraction() );
@@ -984,15 +882,13 @@ formContainer.addEventListener( 'reset', event => {
 	// The form is still filled.
 	window.setTimeout( function() {
 		// Now the form is empty.
-		processForm( event.target );
+		form.processForm();
 	} );
 } );
 
 window.addEventListener( 'popstate', event => {
 	hydrateForm( formContainer, new URLSearchParams( document.location.search.slice( 1 ) ) );
 } );
-
-updateDateList( formContainer );
 
 const query = new URLSearchParams( document.location.search.slice( 1 ) );
 const id = query.get( 'id' );
