@@ -86,29 +86,29 @@ function filterForRegion( formContainer, checkins ) {
 	return filtered;
 }
 
-function filteredCheckins( formContainer, checkins ) {
-	const venueId = formContainer.venue.value && venueIdRegExp.test( formContainer.venue.value ) && formContainer.venue.value.slice( 3 );
-	const venue = normalize( formContainer.venue.value );
+function filteredCheckins( state, checkins ) {
+	const venueId = state?.venue && venueIdRegExp.test( state.venue ) && state.venue.slice( 3 );
+	const venue = normalize( state?.venue ?? '' );
 	const venueRegExp = venue ? new RegExp( '\\b' + venue + '\\b' ) : null;
-	const text = formContainer.elements.text.value.length ? formContainer.elements.text.value.toLowerCase() : null;
+	const text = state?.text?.length ? state?.text?.toLowerCase() : null;
 	const start = formContainer.start.valueAsNumber ? formContainer.start.valueAsNumber : null;
 	const end = formContainer.end.valueAsNumber ? formContainer.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
-	const category = formContainer.category.value;
-	const sticker = formContainer.sticker.value.replace( /[^\x00-xFF]/g, '' ).trim();
-	const country = formContainer.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	const state = formContainer.state.value;
-	const city = normalize( formContainer.city.value );
-	const missed = formContainer.missed.checked;
-	const isPrivate = formContainer.private.checked;
-	const event = formContainer.event.checked;
-	const overlaps = formContainer.overlaps.checked;
-	const becameMayor = formContainer.mayor.checked;
-	const unlockedSticker = formContainer['unlocked-sticker'].checked;
-	const photos = formContainer.photos.checked;
-	const posts = formContainer.posts.checked;
-	const likes = formContainer.likes.checked;
-	const comments = formContainer.comments.checked;
-	const source = formContainer.source.value;
+	const category = state?.category;
+	const sticker = state?.sticker?.replace( /[^\x00-xFF]/g, '' )?.trim();
+	const country = state?.country?.replace( /\p{Regional_Indicator}/ug, '' )?.trim();
+	const province = state.state;
+	const city = normalize( state?.city ?? '' );
+	const missed = state?.missed;
+	const isPrivate = state?.private;
+	const event = state?.event;
+	const overlaps = state?.overlaps;
+	const becameMayor = state?.mayor;
+	const unlockedSticker = state?.['unlocked-sticker'];
+	const photos = state?.photos;
+	const posts = state?.posts;
+	const likes = state?.likes;
+	const comments = state?.comments;
+	const source = state?.source;
 
 	const filtered = checkins.filter( checkin => {
 		const date = new Date( checkin.properties.date.split( 'T' )[0] );
@@ -120,13 +120,13 @@ function filteredCheckins( formContainer, checkins ) {
 			}
 		}
 
-		if ( state ) {
-			if ( '-NONE-' === state ) {
+		if ( province ) {
+			if ( '-NONE-' === province ) {
 				if ( checkin.properties.location.state ) {
 					return false;
 				}
 			} else {
-				if ( ! checkin.properties.location.state || checkin.properties.location.state.id !== state ) {
+				if ( ! checkin.properties.location.state || checkin.properties.location.state.id !== province ) {
 					return false;
 				}
 			}
@@ -493,7 +493,7 @@ function renderCard( checkin ) {
 }
 
 function renderPoints( formContainer, { id = false, updateMap = true } = {} ) {
-	const worldPoints = filteredCheckins( formContainer, checkins );
+	const worldPoints = filteredCheckins( form.getState(), checkins );
 	const regionPoints = filterForRegion( formContainer, worldPoints );
 	const venues = new Set;
 	locations.clear();
@@ -778,7 +778,7 @@ const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( { bbox } ) => {
 	formContainer.elements.bbox.value = bbox;
-	onFormUserInteraction( { updateMap: false } );
+	form.onFormUserInteraction( { updateMap: false } );
 } );
 map.onResize( () => {
 	if ( mapContainer.parentElement.id === 'big-map' ) {
