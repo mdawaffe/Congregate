@@ -306,7 +306,7 @@ export class GeoMap {
 				map.removeSource( 'clusteroutline' );
 			}
 		} );
-		this.#wrappedOn( 'click', 'clusters', async function ( e ) {
+		this.#wrappedOn( 'click', 'clusters', async ( e ) => {
 			const features = map.queryRenderedFeatures( e.point, {
 				layers: [ 'clusters' ]
 			} );
@@ -327,15 +327,8 @@ export class GeoMap {
 			const clusterOutline = map.getSource( 'clusteroutline' );
 
 			if ( clusterOutline ) {
-				const data = await clusterOutline.getData();
-				const bounds = data.geometry.coordinates[0].reduce( ( bounds, coords ) => bounds.extend( coords ), new maplibregl.LngLatBounds() );
-				// Rather than use map.fitBounds(), calculate zoom difference ahead of time to adjust speed
-				// then use map.flyTo()
-				const padding = 20;
-				const { center, zoom } = map.cameraForBounds( bounds, { padding } );
-				const currentZoom = map.getZoom();
-				// Speed could be tweaked, but using the difference gives decent results.
-				map.flyTo( { center, zoom, speed: Math.abs( zoom - currentZoom ), padding } );
+				const geojson = await clusterOutline.getData();
+				await this.#resize( { geojson, animate: true } );
 			} else {
 				const zoom = await map.getSource( 'checkins' ).getClusterExpansionZoom( clusterId );
 				map.easeTo( {
@@ -369,12 +362,42 @@ export class GeoMap {
 		this.#moveSubscription = null;
 	}
 
-	async #resize( { features = null, animate = false, bbox = '' } = {} ) {
-		if ( ! features ) {
-			const { features: checkins } = await this.#map.getSource( 'checkins' ).getData();
-			features = checkins;
+	#pointsFromBbox( bbox ) {
+		return bbox
+			.split( ',' )
+			.map( parseFloat )
+			.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
+	}
+
+	#pointsFromGeoJson( geojson ) {
+		if ( 'bbox' in geojson ) {
+			return this.#pointsFromBbox( geojson.bbox ).toArray();
 		}
 
+		switch ( geojson.type ) {
+			case 'FeatureCollection' :
+				return geojson.features.map( feature => this.#pointsFromGeoJson( feature ) ).flat();
+			case 'Feature' :
+				return this.#pointsFromGeoJson( geojson.geometry );
+			case 'Point' :
+				return [ geojson.coordinates ];
+			case 'MultiPoint' :
+			case 'LineString' :
+				return geojson.coordinates;
+			case 'Polygon' :
+				return geojson.coordinates[0]; // [0] is always the exterior ring.
+			case 'MultiLineStrings' :
+				return geojson.coordinates.flat();
+			case 'MultiPolygons' :
+				return geojson.coordinates.map( polygon => polygon[0] ).flat();
+			case 'GeometryCollection' :
+				return geojson.geometries.map( geometry => this.#pointsFromGeoJson( geometry ) ).flat();
+			default :
+				throw new Error( `Unknown GeoJSON type: ${type}` );
+		}
+	}
+
+	async #resize( { geojson = null, animate = false, bbox = '' } = {} ) {
 		let bounds;
 		let padding = 0;
 		if ( '' !== bbox ) {
@@ -385,7 +408,12 @@ export class GeoMap {
 		}
 
 		if ( ! bounds ) {
-			bounds = features.reduce( ( bounds, feature ) => bounds.extend( feature.geometry.coordinates ), new maplibregl.LngLatBounds );
+			if ( ! geojson ) {
+				geojson = await this.#map.getSource( 'checkins' ).getData();
+			}
+
+			const points = this.#pointsFromGeoJson( geojson );
+			bounds = points.reduce( ( bounds, point ) => bounds.extend( point ), new maplibregl.LngLatBounds );
 			padding = 20;
 		}
 		if ( bounds.isEmpty() ) {
@@ -395,7 +423,9 @@ export class GeoMap {
 
 		this.#off();
 		if ( animate ) {
-			this.#map.flyTo( { center, zoom, padding } );
+			const currentZoom = this.#map.getZoom();
+			// Speed could be tweaked, but using the difference gives decent results.
+			this.#map.flyTo( { center, zoom, speed: Math.abs( zoom - currentZoom ), padding } );
 		} else {
 			this.#map.jumpTo( { center, zoom, padding } );
 		}
@@ -413,18 +443,19 @@ export class GeoMap {
 
 		const updateSource = () => {
 			try {
-				this.#source.setData( {
+				const geojson = {
 					type: 'FeatureCollection',
 					features: addProperties( features ),
-				} );
+				};
+				this.#source.setData( geojson );
 
 				if ( ! this.#fullBbox ) {
-					this.#resize( { features } );
+					this.#resize( { geojson } );
 					this.#fullBbox = this.bboxFromBounds( map.getBounds() );
 				} else if ( '' === bbox ) {
-					this.#resize( { features, bbox: this.#fullBbox } );
+					this.#resize( { geojson, bbox: this.#fullBbox } );
 				} else {
-					this.#resize( { features, bbox } );
+					this.#resize( { geojson, bbox } );
 				}
 			} catch ( e ) {
 				console.error( e );
@@ -448,12 +479,7 @@ export class GeoMap {
 	}
 
 	boundsFromBbox( bbox ) {
-		return maplibregl.LngLatBounds.convert(
-			bbox
-				.split( ',' )
-				.map( parseFloat )
-				.reduce( ( acc, c, i ) => acc[ i < 2 ? 0 : 1 ].push( c ) && acc, [ [], [] ] )
-		);
+		return maplibregl.LngLatBounds.convert( this.#pointsFromBbox( bbox ) );
 	}
 
 	bboxFromBounds( bounds ) {
