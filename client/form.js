@@ -260,6 +260,19 @@ export class Form extends EventTarget {
 		form.addEventListener( 'change', () => this.#onFormUserInteraction() );
 		form.addEventListener( 'search', () => this.#onFormUserInteraction() );
 
+		const country = form.querySelector( '#country' );
+		const fixCountryAndClearSubUnits = ( event ) => {
+			event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+
+			if ( ! event.target.value ) {
+				form.elements.state.value = '';
+				form.elements.city.value = '';
+			}
+		}
+
+		country.addEventListener( 'change', event => fixCountryAndClearSubUnits( event ) );
+		country.addEventListener( 'search', event => fixCountryAndClearSubUnits( event ) );
+
 		this.#updateDateList();
 	}
 }
