@@ -836,10 +836,21 @@ document.body.addEventListener( 'click', event => {
 
 document.getElementById( 'country' ).addEventListener( 'change', event => {
 	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+	if ( ! event.target.value ) {
+		formContainer.elements.state.value = '';
+		formContainer.elements.city.value = '';
+	}
+} );
+
+document.getElementById( 'country' ).addEventListener( 'search', event => {
+	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+	if ( ! event.target.value ) {
+		formContainer.elements.state.value = '';
+		formContainer.elements.city.value = '';
+	}
 } );
 
 form.addEventListener( 'change', ( event ) => {
-	console.log( 'event', event.detail.args );
 	renderPoints( event.target, event.detail.args );
 } );
 

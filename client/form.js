@@ -5,7 +5,7 @@ let debouncing = false;
 export class Form extends EventTarget {
 	#form;
 	#countries;
-	#processTimeout;
+	#firstProcess;
 
 	getCountryMap() {
 		return this.#countries;
@@ -175,10 +175,7 @@ export class Form extends EventTarget {
 		}
 
 		if ( didUpdate ) {
-			console.log( 'did update', state, args );
 			this.#onFormUserInteraction( args );
-		} else {
-			console.log( 'did not update', state, args );
 		}
 	}
 
@@ -207,34 +204,35 @@ export class Form extends EventTarget {
 
 	#processForm( args ) {
 		const queryString = this.#serialize();
-		console.log( 'processForm', queryString, args );
-		if ( document.location.search.slice( 1 ) !== queryString ) {
+		const currentQueryString = document.location.search.slice( 1 );
+		if ( currentQueryString !== queryString ) {
 			history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
 		}
 
-		this.#updateDateList();
+		if ( currentQueryString !== queryString || ! this.#firstProcess ) {
+			this.#firstProcess = true;
 
-		this.dispatchEvent( new CustomEvent( 'change', { detail: { state: this.getState(), args } } ) );
+			this.#updateDateList();
+
+			this.dispatchEvent( new CustomEvent( 'change', { detail: { state: this.getState(), args } } ) );
+		}
 	}
 
 	#onFormUserInteraction( args ) {
 		this.#form.elements.page.value = '';
-		console.log( 'onFormUserInteraction', debouncing, args );
 
 		// We sometimes get a change event (click a checkbox, e.g.)
 		// We sometimes get a search event (click the clear field button in a search input, e.g.)
 		// We sometimes get both events (type something into a search input and hit enter, e.g.)
 		// We don't care which event(s) we get, but we only need to process one.
 		if ( debouncing ) {
-			// Always take the last one.
-			window.clearTimeout( this.#processTimeout );
+			return;
 		}
 
 		debouncing = true;
-		this.#processTimeout = window.setTimeout( () => {
-			debouncing = false;
-			this.#processForm( args )
-		} );
+		window.setTimeout( () => debouncing = false );
+
+		this.#processForm( args )
 	}
 
 	#reset() {
@@ -259,8 +257,8 @@ export class Form extends EventTarget {
 			event.preventDefault();
 		} );
 		form.addEventListener( 'reset', () => this.#reset() );
-		form.addEventListener( 'change', () => { console.log( 'change' ); this.#onFormUserInteraction() } );
-		form.addEventListener( 'search', () => { console.log( 'search' ); this.#onFormUserInteraction() } );
+		form.addEventListener( 'change', () => this.#onFormUserInteraction() );
+		form.addEventListener( 'search', () => this.#onFormUserInteraction() );
 
 		this.#updateDateList();
 	}
