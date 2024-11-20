@@ -516,3 +516,15 @@ dialog dt button {
 .view-map dialog h3 {
 	display: none;
 }
+
+.stats-locations {
+	display: grid;
+
+	span {
+		grid-area: 1 / 1 / 2 / 2;
+	}
+}
+
+.hidden {
+	visibility: hidden;
+}

@@ -77,7 +77,13 @@
 					<dd id="stats-checkins">0</dd>
 					<dt>Venues</dt>
 					<dd id="stats-venues">0</dd>
-					<dt id="label-locations">Countries</dt>
+					<dt class="stats-locations">
+						<span id="label-locations">Countries</span>
+						<!-- Include all the options in the layout calculation to prevent layout shifts -->
+						<span class="hidden" aria-hidden="true">Countries</span>
+						<span class="hidden" aria-hidden="true">States</span>
+						<span class="hidden" aria-hidden="true">Countries</span>
+					</dt>
 					<dd><a href="#" id="stats-locations">0</a></dd>
 				</dl>
 			</output>
