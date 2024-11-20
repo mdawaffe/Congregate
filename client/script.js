@@ -1,4 +1,6 @@
 import { GeoMap } from './map.js';
+import { Form } from './form.js';
+import { formatCountry, countryFlag } from './formatting.js';
 
 function forEvent( object, eventName ) {
 	return new Promise( resolve => {
@@ -34,17 +36,6 @@ function formatDate( dateString ) {
 	].join( '' );
 }
 
-function formatCountry( country ) {
-	return (
-		// Current build format.
-		country?.name
-		// Previous build format.
-		|| ( 'string' === typeof country && country )
-		// Fallback.
-		|| '-NONE-'
-	);
-}
-
 function matches( needle, haystack ) {
 	if ( ! haystack.includes( needle ) ) {
 		return false;
@@ -57,10 +48,10 @@ function matches( needle, haystack ) {
 
 const venueIdRegExp = new RegExp( '^id:[0-9a-f]{24}$' );
 
-function filterForRegion( form, checkins ) {
-	const country = form.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	const bbox = form.elements.bbox.value
-		? map.boundsFromBbox( form.elements.bbox.value )
+function filterForRegion( formContainer, checkins ) {
+	const country = formContainer.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+	const bbox = formContainer.elements.bbox.value
+		? map.boundsFromBbox( formContainer.elements.bbox.value )
 		: null;
 
 	const states = new Map;
@@ -81,8 +72,8 @@ function filterForRegion( form, checkins ) {
 	} );
 
 	if ( country ) {
-		form.state.disabled = false;
-		form.city.disabled = false;
+		formContainer.state.disabled = false;
+		formContainer.city.disabled = false;
 		if ( country !== stateList.dataset.country ) {
 			stateList.dataset.country = country;
 			stateList.replaceChildren();
@@ -96,44 +87,44 @@ function filterForRegion( form, checkins ) {
 					stateList.appendChild( option );
 				} );
 			} else {
-				form.state.disabled = true;
+				formContainer.state.disabled = true;
 			}
 		}
 	} else {
 		stateList.dataset.country = false;
-		form.state.disabled = true;
-		form.city.disabled = true;
-		form.state.value = '';
-		form.city.value = '';
+		formContainer.state.disabled = true;
+		formContainer.city.disabled = true;
+		formContainer.state.value = '';
+		formContainer.city.value = '';
 		stateList.replaceChildren();
 	}
 
 	return filtered;
 }
 
-function filteredCheckins( form, checkins ) {
-	const venueId = form.venue.value && venueIdRegExp.test( form.venue.value ) && form.venue.value.slice( 3 );
-	const venue = normalize( form.venue.value );
+function filteredCheckins( formContainer, checkins ) {
+	const venueId = formContainer.venue.value && venueIdRegExp.test( formContainer.venue.value ) && formContainer.venue.value.slice( 3 );
+	const venue = normalize( formContainer.venue.value );
 	const venueRegExp = venue ? new RegExp( '\\b' + venue + '\\b' ) : null;
-	const text = form.elements.text.value.length ? form.elements.text.value.toLowerCase() : null;
-	const start = form.start.valueAsNumber ? form.start.valueAsNumber : null;
-	const end = form.end.valueAsNumber ? form.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
-	const category = form.category.value;
-	const sticker = form.sticker.value.replace( /[^\x00-xFF]/g, '' ).trim();
-	const country = form.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	const state = form.state.value;
-	const city = normalize( form.city.value );
-	const missed = form.missed.checked;
-	const isPrivate = form.private.checked;
-	const event = form.event.checked;
-	const overlaps = form.overlaps.checked;
-	const becameMayor = form.mayor.checked;
-	const unlockedSticker = form['unlocked-sticker'].checked;
-	const photos = form.photos.checked;
-	const posts = form.posts.checked;
-	const likes = form.likes.checked;
-	const comments = form.comments.checked;
-	const source = form.source.value;
+	const text = formContainer.elements.text.value.length ? formContainer.elements.text.value.toLowerCase() : null;
+	const start = formContainer.start.valueAsNumber ? formContainer.start.valueAsNumber : null;
+	const end = formContainer.end.valueAsNumber ? formContainer.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
+	const category = formContainer.category.value;
+	const sticker = formContainer.sticker.value.replace( /[^\x00-xFF]/g, '' ).trim();
+	const country = formContainer.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+	const state = formContainer.state.value;
+	const city = normalize( formContainer.city.value );
+	const missed = formContainer.missed.checked;
+	const isPrivate = formContainer.private.checked;
+	const event = formContainer.event.checked;
+	const overlaps = formContainer.overlaps.checked;
+	const becameMayor = formContainer.mayor.checked;
+	const unlockedSticker = formContainer['unlocked-sticker'].checked;
+	const photos = formContainer.photos.checked;
+	const posts = formContainer.posts.checked;
+	const likes = formContainer.likes.checked;
+	const comments = formContainer.comments.checked;
+	const source = formContainer.source.value;
 
 	const filtered = checkins.filter( checkin => {
 		const date = new Date( checkin.properties.date.split( 'T' )[0] );
@@ -517,17 +508,17 @@ function renderCard( checkin ) {
 	return content;
 }
 
-function renderPoints( form, { id = false, updateMap = true } = {} ) {
-	const worldPoints = filteredCheckins( form, checkins );
-	const regionPoints = filterForRegion( form, worldPoints );
+function renderPoints( formContainer, { id = false, updateMap = true } = {} ) {
+	const worldPoints = filteredCheckins( formContainer, checkins );
+	const regionPoints = filterForRegion( formContainer, worldPoints );
 	const venues = new Set;
 	locations.clear();
 	let locationSource = 'country';
 	let locationLabel = 'Countries';
 	locationParameter = 'country';
 
-	if ( form.country.value ) {
-		if ( form.state.value || form.state.disabled ) {
+	if ( formContainer.country.value ) {
+		if ( formContainer.state.value || formContainer.state.disabled ) {
 			locationSource = 'city';
 			locationLabel = 'Cities';
 			locationParameter = 'city';
@@ -551,10 +542,10 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 	list.replaceChildren();
 
 	if ( updateMap ) {
-		map.update( worldPoints, { bbox: form.elements.bbox.value } );
+		map.update( worldPoints, { bbox: formContainer.elements.bbox.value } );
 	}
 	if ( 'view-map' !== document.body.className ) {
-		renderList( regionPoints, form.page.value ? parseInt( form.page.value, 10 ) : 1, id );
+		renderList( regionPoints, formContainer.page.value ? parseInt( formContainer.page.value, 10 ) : 1, id );
 	}
 }
 
@@ -683,7 +674,7 @@ function renderStats( locations ) {
 		currentURL.searchParams.append( locationParameter, locationID );
 		currentURL.searchParams.delete( 'page' );
 		link.href = currentURL.toString();
-		const dtContents = 'country' === locationParameter ? [ countryFlag( location ), ' ', link ] : [ link ];
+		const dtContents = 'country' === locationParameter ? [ countryFlag( countries, location ), ' ', link ] : [ link ];
 		dt.append( ...dtContents );
 		const dd = document.createElement( 'dd' );
 		dd.textContent = locations.get( location ).toLocaleString();
@@ -694,55 +685,15 @@ function renderStats( locations ) {
 	stats.replaceChildren( content );
 }
 
-const countries = new Map;
-function populateDataLists( form, checkins ) {
-	const categories = new Set;
-	const stickerMap = new Map;
-	for ( const checkin of checkins ) {
-		checkin.properties.categories.forEach( category => categories.add( category.name ) );
-		const countryID = checkin.properties.location?.country?.id ?? null;
-		countries.set( formatCountry( checkin.properties.location?.country ), countryID );
-		if ( checkin.properties.sticker ) {
-			stickerMap.set( checkin.properties.sticker.name, checkin.properties.sticker.emoji );
-		}
-	}
-
-	const categoryList = form.querySelector( '#categories' );
-	Array.from( categories ).sort().forEach( value => {
-		const option = document.createElement( 'option' );
-		option.value = value;
-		categoryList.appendChild( option );
-	} );
-
-	const countryList = form.querySelector( '#countries' );
-	Array.from( countries.entries() ).sort( ( a, b ) => ( a[0] || '' ).localeCompare( b[0] || '' ) ).forEach( ( [ name, id ] ) => {
-		const option = document.createElement( 'option' );
-		option.value = `${ countryFlag( name ) } ${name}`;
-		countryList.appendChild( option );
-	} );
-
-	const stickerList = form.querySelector( '#stickers' );
-	for ( const [ name, emoji ] of Array.from( stickerMap.entries() ).sort( ( a, b ) => a[0].localeCompare( b[0] ) ) ) {
-		const option = document.createElement( 'option' );
-		option.value = `${emoji} ${name}`;
-		stickerList.appendChild( option );
-	}
-}
-
-function countryFlag( country ) {
-	const id = countries.get( country ) ?? '';
-	return id.split( '' ).map( c => String.fromCodePoint( ( c.codePointAt() - 65 ) + 0x1F1E6 ) ).join( '' );
-}
-
-function serializeForm( form ) {
-	const params = new URLSearchParams( Array.from( new FormData( form ).entries() ).filter( ( [ key, value ] ) => value.length ) )
+function serializeForm( formContainer ) {
+	const params = new URLSearchParams( Array.from( new FormData( formContainer ).entries() ).filter( ( [ key, value ] ) => value.length ) )
 	return params.toString();
 }
 
-function hydrateForm( form, query ) {
-	const elements = form.elements;
+function hydrateForm( formContainer, query ) {
+	const elements = formContainer.elements;
 
-	form.reset(); // also clears page and bbox via the reset event handler.
+	formContainer.reset(); // also clears page and bbox via the reset event handler.
 
 	for ( const [ key, value ] of query ) {
 		if ( ! elements[key] ) {
@@ -762,58 +713,58 @@ function hydrateForm( form, query ) {
 	// processForm is called by the reset event handler.
 }
 
-function updateDateList( form ) {
+function updateDateList( formContainer ) {
 	const dateList = document.getElementById( 'dates' );
 
 	const dateElement = document.createElement( 'input' );
 	dateElement.type = 'date';
 
 	let suggested = [];
-	if ( form.start.value && ! form.end.value ) {
-		dateElement.valueAsNumber = form.start.valueAsNumber + 1000 * 60 * 60 * 24 * 6;
+	if ( formContainer.start.value && ! formContainer.end.value ) {
+		dateElement.valueAsNumber = formContainer.start.valueAsNumber + 1000 * 60 * 60 * 24 * 6;
 		const oneWeek = dateElement.value;
 
-		dateElement.value = form.start.value;
+		dateElement.value = formContainer.start.value;
 		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
 		dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() + 1 );
 		const oneMonth = dateElement.value;
 
-		dateElement.value = form.start.value;
+		dateElement.value = formContainer.start.value;
 		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
 		dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() + 1 );
 		const oneYear = dateElement.value;
 
 		suggested = [
-			[ form.start.value, 'One day' ],
+			[ formContainer.start.value, 'One day' ],
 			[ oneWeek, 'One week' ],
 			[ oneMonth, 'One month' ],
 			[ oneYear, 'One year' ],
 		];
-		form.start.removeAttribute( 'list' );
-		form.end.setAttribute( 'list', 'dates' );
-	} else if ( ! form.start.value && form.end.value ) {
-		dateElement.valueAsNumber = form.end.valueAsNumber - 1000 * 60 * 60 * 24 * 6;
+		formContainer.start.removeAttribute( 'list' );
+		formContainer.end.setAttribute( 'list', 'dates' );
+	} else if ( ! formContainer.start.value && formContainer.end.value ) {
+		dateElement.valueAsNumber = formContainer.end.valueAsNumber - 1000 * 60 * 60 * 24 * 6;
 		const oneWeek = dateElement.value;
 
-		dateElement.value = form.end.value;
+		dateElement.value = formContainer.end.value;
 		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
 		dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() - 1 );
 		const oneMonth = dateElement.value;
 
-		dateElement.value = form.end.value;
+		dateElement.value = formContainer.end.value;
 		dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
 		dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() - 1 );
 		const oneYear = dateElement.value;
 
 		suggested = [
-			[ form.end.value, 'One day' ],
+			[ formContainer.end.value, 'One day' ],
 			[ oneWeek, 'One week' ],
 			[ oneMonth, 'One month' ],
 			[ oneYear, 'One year' ],
 		];
-		form.end.removeAttribute( 'list' );
-		form.start.setAttribute( 'list', 'dates' );
-	} else if ( ! form.start.value && ! form.end.value ) {
+		formContainer.end.removeAttribute( 'list' );
+		formContainer.start.setAttribute( 'list', 'dates' );
+	} else if ( ! formContainer.start.value && ! formContainer.end.value ) {
 		dateList.replaceChildren();
 		return;
 	}
@@ -835,7 +786,7 @@ function updateDateList( form ) {
 
 let debouncing = false;
 function onFormUserInteraction( args ) {
-	form.elements.page.value = '';
+	formContainer.elements.page.value = '';
 
 	// We sometimes get a change event (click a checkbox, e.g.)
 	// We sometimes get a search event (click the clear field button in a search input, e.g.)
@@ -848,17 +799,17 @@ function onFormUserInteraction( args ) {
 	debouncing = true;
 	window.setTimeout( () => debouncing = false );
 
-	processForm( form, args )
+	processForm( formContainer, args )
 }
 
-function processForm( form, args ) {
-	const queryString = serializeForm( form );
+function processForm( formContainer, args ) {
+	const queryString = serializeForm( formContainer );
 	if ( document.location.search.slice( 1 ) !== queryString ) {
 		history.pushState( {}, '', '' === queryString ? './' : '?' + queryString );
 	}
 
-	updateDateList( form );
-	renderPoints( form, args );
+	updateDateList( formContainer );
+	renderPoints( formContainer, args );
 }
 
 async function clipboardWrite( text ) {
@@ -920,7 +871,6 @@ await forEvent( window, 'DOMContentLoaded' );
 const checkinsRequest = await fetch( './checkins/checkins.geo.json' );
 const checkins = await checkinsRequest.json();
 
-const form = document.querySelector( 'form' );
 const list = document.getElementById( 'list' );
 const stateList = document.getElementById( 'states' );
 
@@ -938,12 +888,16 @@ const templates = {
 let locationParameter = 'country';
 const locations = new Map;
 
-populateDataLists( form, checkins );
+const formContainer = document.querySelector( 'form' );
+const form = new Form( formContainer );
+form.populateDataLists( checkins );
+
+const countries = form.getCountryMap();
 
 const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( { bbox } ) => {
-	form.elements.bbox.value = bbox;
+	formContainer.elements.bbox.value = bbox;
 	onFormUserInteraction( { updateMap: false } );
 } );
 map.onResize( () => {
@@ -961,14 +915,14 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( 'h2 a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( form, targetURL.searchParams );
+		hydrateForm( formContainer, targetURL.searchParams );
 		return;
 	}
 
 	if ( event.target.matches( '.date' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( form, targetURL.searchParams );
+		hydrateForm( formContainer, targetURL.searchParams );
 		return;
 	}
 
@@ -983,7 +937,7 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( '#stats a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( form, targetURL.searchParams );
+		hydrateForm( formContainer, targetURL.searchParams );
 		event.target.closest( '#stats' ).hidePopover();
 		return;
 	}
@@ -997,7 +951,7 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( '.pages a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( form, targetURL.searchParams );
+		hydrateForm( formContainer, targetURL.searchParams );
 		return;
 	}
 
@@ -1016,13 +970,13 @@ document.getElementById( 'country' ).addEventListener( 'change', event => {
 	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 } );
 
-form.addEventListener( 'submit', event => {
+formContainer.addEventListener( 'submit', event => {
 	event.preventDefault();
 } );
 
-form.addEventListener( 'change', () => onFormUserInteraction() );
-form.addEventListener( 'search', () => onFormUserInteraction() );
-form.addEventListener( 'reset', event => {
+formContainer.addEventListener( 'change', () => onFormUserInteraction() );
+formContainer.addEventListener( 'search', () => onFormUserInteraction() );
+formContainer.addEventListener( 'reset', event => {
 	event.target.elements.page.value = '';
 	event.target.elements.bbox.value = '';
 	event.target.elements.source.value = '';
@@ -1035,10 +989,10 @@ form.addEventListener( 'reset', event => {
 } );
 
 window.addEventListener( 'popstate', event => {
-	hydrateForm( form, new URLSearchParams( document.location.search.slice( 1 ) ) );
+	hydrateForm( formContainer, new URLSearchParams( document.location.search.slice( 1 ) ) );
 } );
 
-updateDateList( form );
+updateDateList( formContainer );
 
 const query = new URLSearchParams( document.location.search.slice( 1 ) );
 const id = query.get( 'id' );
@@ -1046,10 +1000,10 @@ const id = query.get( 'id' );
 if ( id ) {
 	document.body.className = 'view-map';
 	map.update( checkins ); // To set the full bounds of the map.
-	renderPoints( form, { id } );
+	renderPoints( formContainer, { id } );
 } else if ( query.toString().length ) {
 	map.update( checkins ); // To set the full bounds of the map.
-	hydrateForm( form, query );
+	hydrateForm( formContainer, query );
 } else {
-	renderPoints( form ); // We're rendering all points, so we get the full bounds for free.
+	renderPoints( formContainer ); // We're rendering all points, so we get the full bounds for free.
 }
