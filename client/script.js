@@ -87,28 +87,29 @@ function filterForRegion( formContainer, checkins ) {
 }
 
 function filteredCheckins( state, checkins ) {
-	const venueId = state?.venue && venueIdRegExp.test( state.venue ) && state.venue.slice( 3 );
-	const venue = normalize( state?.venue ?? '' );
+	const venueId = state.venue && venueIdRegExp.test( state.venue ) && state.venue.slice( 3 );
+	const venue = normalize( state.venue );
 	const venueRegExp = venue ? new RegExp( '\\b' + venue + '\\b' ) : null;
-	const text = state?.text?.length ? state?.text?.toLowerCase() : null;
-	const start = formContainer.start.valueAsNumber ? formContainer.start.valueAsNumber : null;
-	const end = formContainer.end.valueAsNumber ? formContainer.end.valueAsNumber + 24 * 60 * 60 * 1000 : null;
-	const category = state?.category;
-	const sticker = state?.sticker?.replace( /[^\x00-xFF]/g, '' )?.trim();
-	const country = state?.country?.replace( /\p{Regional_Indicator}/ug, '' )?.trim();
+	const text = state.text.length ? state.text.toLowerCase() : null;
+	const start = state.startAsNumber ? state.startAsNumber : null;
+	const end = state.endAsNumber ? state.endAsNumber + 24 * 60 * 60 * 1000 : null;
+	console.log( start, end );
+	const category = state.category;
+	const sticker = state.sticker.replace( /[^\x00-xFF]/g, '' ).trim();
+	const country = state.country.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 	const province = state.state;
-	const city = normalize( state?.city ?? '' );
-	const missed = state?.missed;
-	const isPrivate = state?.private;
-	const event = state?.event;
-	const overlaps = state?.overlaps;
-	const becameMayor = state?.mayor;
-	const unlockedSticker = state?.['unlocked-sticker'];
-	const photos = state?.photos;
-	const posts = state?.posts;
-	const likes = state?.likes;
-	const comments = state?.comments;
-	const source = state?.source;
+	const city = normalize( state.city );
+	const missed = state.missed;
+	const isPrivate = state.private;
+	const event = state.event;
+	const overlaps = state.overlaps;
+	const becameMayor = state.mayor;
+	const unlockedSticker = state['unlocked-sticker'];
+	const photos = state.photos;
+	const posts = state.posts;
+	const likes = state.likes;
+	const comments = state.comments;
+	const source = state.source;
 
 	const filtered = checkins.filter( checkin => {
 		const date = new Date( checkin.properties.date.split( 'T' )[0] );
@@ -669,29 +670,6 @@ function renderStats( locations ) {
 	stats.replaceChildren( content );
 }
 
-function hydrateForm( formContainer, query ) {
-	const elements = formContainer.elements;
-
-	formContainer.reset(); // also clears page and bbox via the reset event handler.
-
-	for ( const [ key, value ] of query ) {
-		if ( ! elements[key] ) {
-			continue;
-		}
-
-		switch ( elements[key].type ) {
-			case 'checkbox' :
-				elements[key].checked = true;
-				break;
-			default :
-				elements[key].value = value;
-				break;
-		}
-	}
-
-	// processForm is called by the reset event handler.
-}
-
 async function clipboardWrite( text ) {
 	const type = 'text/plain';
 	const blob = new Blob( [ text ], { type } );
@@ -777,7 +755,7 @@ const countries = form.getCountryMap();
 const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( { bbox } ) => {
-	formContainer.elements.bbox.value = bbox;
+	form.update( { bbox } );
 	form.onFormUserInteraction( { updateMap: false } );
 } );
 map.onResize( () => {
@@ -795,14 +773,14 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( 'h2 a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( formContainer, targetURL.searchParams );
+		form.hydrate( targetURL.searchParams );
 		return;
 	}
 
 	if ( event.target.matches( '.date' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( formContainer, targetURL.searchParams );
+		form.hydrate( targetURL.searchParams );
 		return;
 	}
 
@@ -817,7 +795,7 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( '#stats a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( formContainer, targetURL.searchParams );
+		form.hydrate( targetURL.searchParams );
 		event.target.closest( '#stats' ).hidePopover();
 		return;
 	}
@@ -831,7 +809,7 @@ document.body.addEventListener( 'click', event => {
 	if ( event.target.matches( '.pages a' ) ) {
 		event.preventDefault();
 		const targetURL = new URL( event.target.href );
-		hydrateForm( formContainer, targetURL.searchParams );
+		form.hydrate( targetURL.searchParams );
 		return;
 	}
 
@@ -855,7 +833,7 @@ form.addEventListener( 'change', ( event ) => {
 } );
 
 window.addEventListener( 'popstate', event => {
-	hydrateForm( formContainer, new URLSearchParams( document.location.search.slice( 1 ) ) );
+	form.hydrate( new URLSearchParams( document.location.search.slice( 1 ) ) );
 } );
 
 const query = new URLSearchParams( document.location.search.slice( 1 ) );
@@ -867,7 +845,7 @@ if ( id ) {
 	renderPoints( formContainer, { id } );
 } else if ( query.toString().length ) {
 	map.update( checkins ); // To set the full bounds of the map.
-	hydrateForm( formContainer, query );
+	form.hydrate( query );
 } else {
 	renderPoints( formContainer ); // We're rendering all points, so we get the full bounds for free.
 }

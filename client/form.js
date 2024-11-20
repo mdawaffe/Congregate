@@ -124,12 +124,63 @@ export class Form extends EventTarget {
 	}
 
 	getState() {
-		return Object.fromEntries( this.#getValuesArray() );
+		return [...this.#form.elements].filter( element => element.name ).reduce( ( state, element ) => {
+			let value;
+			switch ( element.type ) {
+				case 'checkbox' :
+					value = element.checked;
+					break;
+				case 'date' :
+					state = { ...state, [`${ element.name }AsNumber`]: element.valueAsNumber }
+					// no break
+				default :
+					value = element.value;
+			}
+
+			return { ...state, [element.name]: value };
+		}, {} );
 	}
 
 	#serialize() {
 		const params = new URLSearchParams( this.#getValuesArray() );
 		return params.toString();
+	}
+
+	update( state ) {
+		for ( const [ key, value ] of Object.entries( state ) ) {
+			if ( !this.#form.elements?.[key] ) {
+				throw new Error( `Unknown form element: ${ key }` );
+			}
+
+			if ( 'boolean' === typeof value ) {
+				this.#form.elements[key].checked = value;
+			} else {
+				this.#form.elements[key].value = value;
+			}
+		}
+	}
+
+	hydrate( query ) {
+		const elements = this.#form.elements;
+
+		this.#form.reset(); // also clears page and bbox via the reset event handler.
+
+		for ( const [ key, value ] of query ) {
+			if ( ! elements[key] ) {
+				continue;
+			}
+
+			switch ( elements[key].type ) {
+				case 'checkbox' :
+					elements[key].checked = true;
+					break;
+				default :
+					elements[key].value = value;
+					break;
+			}
+		}
+
+		// processForm is called by the reset event handler.
 	}
 
 	processForm( args ) {
