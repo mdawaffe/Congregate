@@ -692,24 +692,6 @@ function hydrateForm( formContainer, query ) {
 	// processForm is called by the reset event handler.
 }
 
-let debouncing = false;
-function onFormUserInteraction( args ) {
-	formContainer.elements.page.value = '';
-
-	// We sometimes get a change event (click a checkbox, e.g.)
-	// We sometimes get a search event (click the clear field button in a search input, e.g.)
-	// We sometimes get both events (type something into a search input and hit enter, e.g.)
-	// We don't care which event(s) we get, but we only need to process one.
-	if ( debouncing ) {
-		return;
-	}
-
-	debouncing = true;
-	window.setTimeout( () => debouncing = false );
-
-	form.processForm( args )
-}
-
 async function clipboardWrite( text ) {
 	const type = 'text/plain';
 	const blob = new Blob( [ text ], { type } );
@@ -870,20 +852,6 @@ document.getElementById( 'country' ).addEventListener( 'change', event => {
 
 form.addEventListener( 'change', ( event ) => {
 	renderPoints( formContainer, event.state );
-} );
-
-formContainer.addEventListener( 'change', () => onFormUserInteraction() );
-formContainer.addEventListener( 'search', () => onFormUserInteraction() );
-formContainer.addEventListener( 'reset', event => {
-	event.target.elements.page.value = '';
-	event.target.elements.bbox.value = '';
-	event.target.elements.source.value = '';
-
-	// The form is still filled.
-	window.setTimeout( function() {
-		// Now the form is empty.
-		form.processForm();
-	} );
 } );
 
 window.addEventListener( 'popstate', event => {
