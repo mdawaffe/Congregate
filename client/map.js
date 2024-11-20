@@ -314,7 +314,9 @@ export class GeoMap {
 			const allCoords = features[0].properties.coords;
 			const clusterId = features[0].properties.cluster_id;
 
-			if ( ( allCoords.match( /]/g ) || [] ).length < 2 ) {
+			const allCoordsCount = ( allCoords.match( /]/g ) || [] ).length;
+
+			if ( allCoordsCount < 2 ) {
 				const leaves = await map.getSource( 'checkins' ).getClusterLeaves( clusterId, Infinity );
 				const venueCounts = leaves.reduce( ( venueCounts, leaf ) => ( {
 					...venueCounts,
@@ -329,8 +331,25 @@ export class GeoMap {
 			if ( clusterOutline ) {
 				const geojson = await clusterOutline.getData();
 				await this.#resize( { geojson, animate: true } );
+			} else if ( allCoordsCount < 3 ) {
+				// When there's just a couple(?) points, the center calculation SuperCluster does isn't
+				// always very good.
+				const bounds = this.boundsFromBbox( allCoords.replace( '][', ',' ).slice( 1, -1 ) );
+
+				this.#resize( {
+					geojson: {
+						type: "LineString",
+						coordinates: [
+							bounds.getSouthEast().toArray(),
+							bounds.getNorthWest().toArray(),
+						],
+					},
+					animate: true,
+				} );
 			} else {
+				// Not sure that this can happen.
 				const zoom = await map.getSource( 'checkins' ).getClusterExpansionZoom( clusterId );
+
 				map.easeTo( {
 					center: features[0].geometry.coordinates,
 					zoom,
