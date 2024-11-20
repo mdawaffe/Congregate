@@ -525,7 +525,7 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 		stateList.replaceChildren();
 		disabled.state = true;
 		disabled.city = true;
-		form.update( { state: '', city: '' }, { countries: 'disabled' } );
+		form.update( { state: '', city: '' } );
 	}
 
 	form.disable( disabled );
@@ -741,7 +741,6 @@ const checkinsRequest = await fetch( './checkins/checkins.geo.json' );
 const checkins = await checkinsRequest.json();
 
 const list = document.getElementById( 'list' );
-const stateList = document.getElementById( 'states' );
 
 const outputCheckins = document.getElementById( 'stats-checkins' );
 const outputVenues = document.getElementById( 'stats-venues' );
@@ -760,6 +759,8 @@ const locations = new Map;
 const formContainer = document.querySelector( 'form' );
 const form = new Form( formContainer );
 form.populateDataLists( checkins );
+
+const stateList = formContainer.querySelector( '#states' );
 
 const countries = form.getCountryMap();
 
@@ -831,22 +832,6 @@ document.body.addEventListener( 'click', event => {
 		event.preventDefault();
 		event.target.closest( '.overlaps' ).className = 'overlaps short';
 		return;
-	}
-} );
-
-document.getElementById( 'country' ).addEventListener( 'change', event => {
-	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	if ( ! event.target.value ) {
-		formContainer.elements.state.value = '';
-		formContainer.elements.city.value = '';
-	}
-} );
-
-document.getElementById( 'country' ).addEventListener( 'search', event => {
-	event.target.value = event.target.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	if ( ! event.target.value ) {
-		formContainer.elements.state.value = '';
-		formContainer.elements.city.value = '';
 	}
 } );
 
