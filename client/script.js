@@ -32,58 +32,14 @@ function matches( needle, haystack ) {
 
 const venueIdRegExp = new RegExp( '^id:[0-9a-f]{24}$' );
 
-function filterForRegion( formContainer, checkins ) {
-	const country = formContainer.country.value.replace( /\p{Regional_Indicator}/ug, '' ).trim();
-	const bbox = formContainer.elements.bbox.value
-		? map.boundsFromBbox( formContainer.elements.bbox.value )
-		: null;
-
-	const states = new Map;
-
-	const filtered = checkins.filter( checkin => {
-		if ( country ) {
-			const checkinCountry = formatCountry( checkin.properties.location?.country );
-			if ( checkinCountry === country && stateList.dataset.country !== country ) {
-				if ( checkin.properties.location.state ) {
-					states.set( checkin.properties.location.state.id, checkin.properties.location.state.name );
-				} else {
-					states.set( '-NONE-', '' );
-				}
-			}
-		}
-
-		return null === bbox ? true : bbox.contains( checkin.geometry.coordinates )
-	} );
-
-	if ( country ) {
-		formContainer.state.disabled = false;
-		formContainer.city.disabled = false;
-		if ( country !== stateList.dataset.country ) {
-			stateList.dataset.country = country;
-			stateList.replaceChildren();
-			if ( states.size > ( states.has( '-NONE-' ) ? 1 : 0 ) ) {
-				Array.from( states.entries() ).sort( ( a, b ) => ( a[1] || '' ).localeCompare( b[1] || '' ) ).forEach( ( [ id, name ] ) => {
-					const option = document.createElement( 'option' );
-					option.value = id;
-					if ( name && name !== id ) {
-						option.textContent = name;
-					}
-					stateList.appendChild( option );
-				} );
-			} else {
-				formContainer.state.disabled = true;
-			}
-		}
-	} else {
-		stateList.dataset.country = false;
-		formContainer.state.disabled = true;
-		formContainer.city.disabled = true;
-		formContainer.state.value = '';
-		formContainer.city.value = '';
-		stateList.replaceChildren();
+function filterForBbox( state, checkins ) {
+	if ( ! state.bbox ){
+		return checkins;
 	}
 
-	return filtered;
+	const bbox = map.boundsFromBbox( state.bbox );
+
+	return checkins.filter( checkin => bbox.contains( checkin.geometry.coordinates ) );
 }
 
 function filteredCheckins( state, checkins ) {
@@ -93,7 +49,6 @@ function filteredCheckins( state, checkins ) {
 	const text = state.text.length ? state.text.toLowerCase() : null;
 	const start = state.startAsNumber ? state.startAsNumber : null;
 	const end = state.endAsNumber ? state.endAsNumber + 24 * 60 * 60 * 1000 : null;
-	console.log( start, end );
 	const category = state.category;
 	const sticker = state.sticker.replace( /[^\x00-xFF]/g, '' ).trim();
 	const country = state.country.replace( /\p{Regional_Indicator}/ug, '' ).trim();
@@ -493,17 +448,66 @@ function renderCard( checkin ) {
 	return content;
 }
 
-function renderPoints( formContainer, { id = false, updateMap = true } = {} ) {
-	const worldPoints = filteredCheckins( form.getState(), checkins );
-	const regionPoints = filterForRegion( formContainer, worldPoints );
+function renderPoints( form, { id = false, updateMap = true } = {} ) {
+	const state = form.getState();
+	const worldPoints = filteredCheckins( state, checkins );
+	const regionPoints = filterForBbox( state, worldPoints );
+
+	const country = state.country.replace( /\p{Regional_Indicator}/ug, '' ).trim();
+
 	const venues = new Set;
 	locations.clear();
 	let locationSource = 'country';
 	let locationLabel = 'Countries';
 	locationParameter = 'country';
 
-	if ( formContainer.country.value ) {
-		if ( formContainer.state.value || formContainer.state.disabled ) {
+	const addVenue = ( checkin ) => {
+		venues.add( checkin.properties.venue_id );
+		const location = checkin.properties.location[locationSource]?.name ?? checkin.properties.location[locationSource]?.id ?? checkin.properties.location[locationSource];
+		locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
+	}
+
+	const disabled = {
+		state: true,
+		city: true,
+	}
+
+	if ( country ) {
+		const states = new Map;
+
+		for ( const checkin of regionPoints ) {
+			addVenue( checkin );
+
+			const checkinCountry = formatCountry( checkin.properties.location?.country );
+			if ( checkinCountry === country && stateList.dataset.country !== country ) {
+				if ( checkin.properties.location.state ) {
+					states.set( checkin.properties.location.state.id, checkin.properties.location.state.name );
+				} else {
+					states.set( '-NONE-', '' );
+				}
+			}
+		}
+
+		disabled.state = false;
+		disabled.city = false;
+		if ( country !== stateList.dataset.country ) {
+			stateList.dataset.country = country;
+			stateList.replaceChildren();
+			if ( states.size > ( states.has( '-NONE-' ) ? 1 : 0 ) ) {
+				Array.from( states.entries() ).sort( ( a, b ) => ( a[1] || '' ).localeCompare( b[1] || '' ) ).forEach( ( [ id, name ] ) => {
+					const option = document.createElement( 'option' );
+					option.value = id;
+					if ( name && name !== id ) {
+						option.textContent = name;
+					}
+					stateList.appendChild( option );
+				} );
+			} else {
+				disabled.state = true;
+			}
+		}
+
+		if ( state.state || disabled.state ) {
 			locationSource = 'city';
 			locationLabel = 'Cities';
 			locationParameter = 'city';
@@ -512,12 +516,19 @@ function renderPoints( formContainer, { id = false, updateMap = true } = {} ) {
 			locationLabel = 'States';
 			locationParameter = 'state';
 		}
+	} else {
+		for ( const checkin of regionPoints ) {
+			addVenue( checkin );
+		}
+
+		stateList.dataset.country = false;
+		stateList.replaceChildren();
+		disabled.state = true;
+		disabled.city = true;
+		form.update( { state: '', city: '' }, { countries: 'disabled' } );
 	}
-	for ( const point of regionPoints ) {
-		venues.add( point.properties.venue_id );
-		const location = point.properties.location[locationSource]?.name ?? point.properties.location[locationSource]?.id ?? point.properties.location[locationSource];
-		locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
-	}
+
+	form.disable( disabled );
 
 	outputCheckins.textContent = regionPoints.length.toLocaleString();
 	outputVenues.textContent = venues.size.toLocaleString();
@@ -527,10 +538,10 @@ function renderPoints( formContainer, { id = false, updateMap = true } = {} ) {
 	list.replaceChildren();
 
 	if ( updateMap ) {
-		map.update( worldPoints, { bbox: formContainer.elements.bbox.value } );
+		map.update( worldPoints, { bbox: state.bbox } );
 	}
 	if ( 'view-map' !== document.body.className ) {
-		renderList( regionPoints, formContainer.page.value ? parseInt( formContainer.page.value, 10 ) : 1, id );
+		renderList( regionPoints, state.page ? parseInt( state.page, 10 ) : 1, id );
 	}
 }
 
@@ -755,8 +766,7 @@ const countries = form.getCountryMap();
 const mapContainer = document.querySelector( '.map' );
 const map = new GeoMap( mapContainer, document.getElementById( 'big-map' ) );
 map.onViewChanged( ( { bbox } ) => {
-	form.update( { bbox } );
-	form.onFormUserInteraction( { updateMap: false } );
+	form.update( { bbox }, { updateMap: false } );
 } );
 map.onResize( () => {
 	if ( mapContainer.parentElement.id === 'big-map' ) {
@@ -829,7 +839,8 @@ document.getElementById( 'country' ).addEventListener( 'change', event => {
 } );
 
 form.addEventListener( 'change', ( event ) => {
-	renderPoints( formContainer, event.state );
+	console.log( 'event', event.detail.args );
+	renderPoints( event.target, event.detail.args );
 } );
 
 window.addEventListener( 'popstate', event => {
@@ -842,10 +853,10 @@ const id = query.get( 'id' );
 if ( id ) {
 	document.body.className = 'view-map';
 	map.update( checkins ); // To set the full bounds of the map.
-	renderPoints( formContainer, { id } );
+	renderPoints( form, { id } );
 } else if ( query.toString().length ) {
 	map.update( checkins ); // To set the full bounds of the map.
 	form.hydrate( query );
 } else {
-	renderPoints( formContainer ); // We're rendering all points, so we get the full bounds for free.
+	renderPoints( form ); // We're rendering all points, so we get the full bounds for free.
 }
