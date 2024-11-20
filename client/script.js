@@ -839,10 +839,6 @@ form.addEventListener( 'change', ( event ) => {
 	renderPoints( event.target, event.detail.args );
 } );
 
-window.addEventListener( 'popstate', event => {
-	form.hydrate( new URLSearchParams( document.location.search.slice( 1 ) ) );
-} );
-
 const query = new URLSearchParams( document.location.search.slice( 1 ) );
 const id = query.get( 'id' );
 
