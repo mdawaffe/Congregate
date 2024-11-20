@@ -123,7 +123,7 @@ export class Form extends EventTarget {
 		return Array.from( new FormData( this.#form ).entries() ).filter( ( [ key, value ] ) => value.length )
 	}
 
-	getValues() {
+	getState() {
 		return Object.fromEntries( this.#getValuesArray() );
 	}
 
@@ -140,7 +140,7 @@ export class Form extends EventTarget {
 
 		this.#updateDateList();
 
-		this.dispatchEvent( new CustomEvent( 'change', { state: this.getValues() } ) );
+		this.dispatchEvent( new CustomEvent( 'change', { state: this.getState() } ) );
 	}
 
 	onFormUserInteraction( args ) {
