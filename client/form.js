@@ -273,6 +273,11 @@ export class Form extends EventTarget {
 		country.addEventListener( 'change', event => fixCountryAndClearSubUnits( event ) );
 		country.addEventListener( 'search', event => fixCountryAndClearSubUnits( event ) );
 
+		window.addEventListener( 'popstate', event => {
+			this.#firstProcess = false;
+			this.hydrate( new URLSearchParams( document.location.search.slice( 1 ) ) );
+		} );
+
 		this.#updateDateList();
 	}
 }
