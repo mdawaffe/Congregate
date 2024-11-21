@@ -2,6 +2,38 @@ import { formatCountry, countryFlag } from './formatting.js';
 
 let debouncing = false;
 
+const dateEl = document.createElement( 'input' );
+dateEl.type = 'date';
+/**
+ * If the date is greater than 28 for now. Deal with the edge cases later.
+ */
+function addNMonths( value, n ) {
+	dateEl.value = value;
+	if ( ! dateEl.valueAsDate ) {
+		return NaN;
+	}
+
+	if ( dateEl.valueAsDate.getUTCDate() > 28 ) {
+		return NaN
+	}
+
+	const currentMonth = dateEl.valueAsDate.getUTCMonth();
+	let targetMonth = ( ( ( ( currentMonth + n ) % 12 ) + 12 ) % 12 );
+
+	dateEl.valueAsNumber = dateEl.valueAsDate.setUTCMonth( currentMonth + n );
+	if ( dateEl.valueAsDate.getUTCMonth() === targetMonth ) {
+		return dateEl.value;
+	}
+
+	// We overflowed the month. Set to the last day of the target month.
+	// This can't actually happen since we're bailing above.
+	dateEl.value = value;
+	dateEl.valueAsNumber = dateEl.valueAsDate.setUTCMonth( currentMonth + n + 1, 0 );
+
+	return dateEl.value;
+}
+
+
 export class Form extends EventTarget {
 	#form;
 	#countries;
@@ -50,10 +82,88 @@ export class Form extends EventTarget {
 		const form = this.#form;
 		const elements = form.elements;
 
-		const dateList = form.querySelector( '#dates' );
+		if ( ! elements.start.valueAsNumber && ! elements.end.valueAsNumber ) {
+			return;
+		}
+
+		elements.start.parentNode.className = '';
+		elements.end.parentNode.className = '';
 
 		const dateElement = document.createElement( 'input' );
 		dateElement.type = 'date';
+
+		if ( elements.start.valueAsNumber && elements.end.valueAsNumber ) {
+			let prevStart;
+			dateElement.value = elements.start.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+			let prevEnd = dateElement.value;
+
+			dateElement.value = elements.end.value;
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() + 1 );
+			let nextStart = dateElement.value;
+			let nextEnd;
+
+			if ( elements.end.valueAsNumber === elements.start.valueAsNumber ) {
+				// Days
+				prevStart = prevEnd;
+				nextEnd = nextStart;
+			} else if ( 1000 * 60 * 60 * 24 * 6 === elements.end.valueAsNumber - elements.start.valueAsNumber ) {
+				// Weeks
+				dateElement.value = elements.start.value;
+				dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 7 );
+				prevStart = dateElement.value;
+
+				dateElement.value = elements.end.value;
+				dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() + 7 );
+				nextEnd = dateElement.value;
+			} else if ( dateElement.valueAsNumber ) {
+				dateElement.value = addNMonths( elements.start.value, 1 );
+				dateElement.valueAsNumber = dateElement.valueAsNumber && dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+
+				if ( dateElement.valueAsNumber && elements.end.value === dateElement.value ) {
+					// Months
+					dateElement.value = addNMonths( elements.start.value, -1 );
+					prevStart = dateElement.value;
+
+					dateElement.value = addNMonths( elements.start.value, 2 );
+					dateElement.valueAsNumber = dateElement.valueAsNumber && dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+					nextEnd = dateElement.value;
+				} else {
+					dateElement.value = addNMonths( elements.start.value, 12 );
+					dateElement.valueAsNumber = dateElement.valueAsNumber && dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+
+					if ( dateElement.valueAsNumber && elements.end.value === dateElement.value ) {
+						// Years
+						dateElement.value = addNMonths( elements.start.value, -12 );
+						prevStart = dateElement.value;
+
+						dateElement.value = addNMonths( elements.start.value, 24 );
+						dateElement.valueAsNumber = dateElement.valueAsNumber && dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+						nextEnd = dateElement.value;
+					}
+				}
+			}
+
+			if ( nextEnd ) {
+				elements.start.parentNode.className = 'increments';
+				elements.end.parentNode.className = 'increments';
+				const currentURL = new URL( document.location.href );
+				currentURL.searchParams.delete( 'page' );
+
+				currentURL.searchParams.set( 'start', prevStart );
+				currentURL.searchParams.set( 'end', prevEnd );
+				elements.start.parentNode.querySelector( 'a' ).href = currentURL.toString();
+
+				currentURL.searchParams.set( 'start', nextStart );
+				currentURL.searchParams.set( 'end', nextEnd );
+				elements.end.parentNode.querySelector( 'a' ).href = currentURL.toString();
+			} else {
+				elements.start.parentNode.className = '';
+				elements.end.parentNode.className = '';
+			}
+		}
+
+		const dateList = form.querySelector( '#dates' );
 
 		let suggested = [];
 		if ( elements.start.value && ! elements.end.value ) {
@@ -61,13 +171,13 @@ export class Form extends EventTarget {
 			const oneWeek = dateElement.value;
 
 			dateElement.value = elements.start.value;
-			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
-			dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCMonth( dateElement.valueAsDate.getUTCMonth() + 1 );
 			const oneMonth = dateElement.value;
 
 			dateElement.value = elements.start.value;
-			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() - 1 );
-			dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCFullYear( dateElement.valueAsDate.getUTCFullYear() + 1 );
 			const oneYear = dateElement.value;
 
 			suggested = [
@@ -83,13 +193,13 @@ export class Form extends EventTarget {
 			const oneWeek = dateElement.value;
 
 			dateElement.value = elements.end.value;
-			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
-			dateElement.valueAsNumber = dateElement.valueAsDate.setMonth( dateElement.valueAsDate.getMonth() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCMonth( dateElement.valueAsDate.getUTCMonth() - 1 );
 			const oneMonth = dateElement.value;
 
 			dateElement.value = elements.end.value;
-			dateElement.valueAsNumber = dateElement.valueAsDate.setDate( dateElement.valueAsDate.getDate() + 1 );
-			dateElement.valueAsNumber = dateElement.valueAsDate.setFullYear( dateElement.valueAsDate.getFullYear() - 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCDate( dateElement.valueAsDate.getUTCDate() + 1 );
+			dateElement.valueAsNumber = dateElement.valueAsDate.setUTCFullYear( dateElement.valueAsDate.getUTCFullYear() - 1 );
 			const oneYear = dateElement.value;
 
 			suggested = [
@@ -259,6 +369,16 @@ export class Form extends EventTarget {
 		form.addEventListener( 'reset', () => this.#reset() );
 		form.addEventListener( 'change', () => this.#onFormUserInteraction() );
 		form.addEventListener( 'search', () => this.#onFormUserInteraction() );
+		form.addEventListener( 'click', ( event ) => {
+			if ( ! event.target.matches( 'li.increments a' ) ) {
+				return;
+			}
+
+			event.preventDefault();
+
+			const targetURL = new URL( event.target.href );
+			this.hydrate( targetURL.searchParams );
+		} );
 
 		const country = form.querySelector( '#country' );
 		const fixCountryAndClearSubUnits = ( event ) => {

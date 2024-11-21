@@ -28,6 +28,19 @@ nav form, nav form ul, nav form li, nav output, nav dl {
 	display: contents;
 }
 
+nav ul label {
+	a {
+		float: right;
+		margin-right: -0.75em;
+		display: none;
+		text-decoration: none;
+
+		li.increments & {
+			display: block;
+		}
+	}
+}
+
 nav form fieldset {
 	margin: 0;
 	padding: 0;
