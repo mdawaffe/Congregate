@@ -85,7 +85,7 @@ class EmbiggenControl {
 		span.className = 'maplibregl-ctrl-icon';
 
 		const button = document.createElement( 'button' );
-		button.className = 'maplibregl-ctrl-fullscreen';
+		button.className = 'mdawaffe-ctrl-embiggen maplibregl-ctrl-fullscreen';
 		button.addEventListener( 'click', () => this.#toggle() );
 		button.title = 'Embiggen';
 		button.type = 'button';

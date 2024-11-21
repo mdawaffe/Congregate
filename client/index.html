@@ -93,10 +93,46 @@
 					<dd><a href="#" id="stats-locations">0</a></dd>
 				</dl>
 			</output>
+			<h2>View</h2>
+			<p class="views">
+				<button id="view-list">📄</button>
+				<button id="view-map">🗺</button>
+				<button id="view-heat-calendar">🗓️</button>
+			</p>
 		</nav>
 		<div class="view">
 			<div id="big-map"></div>
 			<div id="list"></div>
+			<div id="heat-calendar">
+				<h2>Days of the Year</h2>
+				<table id="days-of-year">
+					<thead><tr><th></th></tr></thead>
+					<tbody></tbody>
+				</table>
+				<h2>Days of the Week</h2>
+				<table id="days-of-week">
+					<thead>
+						<tr>
+							<th scope="col">Sun</th>
+							<th scope="col">Mon</th>
+							<th scope="col">Tue</th>
+							<th scope="col">Wed</th>
+							<th scope="col">Thu</th>
+							<th scope="col">Fri</th>
+							<th scope="col">Sat</th>
+						</tr>
+					</thead>
+					<tbody>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
+					</tbody>
+				</table>
+			</div>
 		</div>
 		<dialog id="info" popover="auto"></dialog>
 		<dialog id="stats" popover="auto"></dialog>
