@@ -467,6 +467,7 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 		locations.set( location, ( locations.get( location ) ?? 0 ) + 1 );
 	}
 
+
 	const disabled = {
 		state: true,
 		city: true,
@@ -535,13 +536,62 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 	outputLocations.textContent = locations.size.toLocaleString();
 	outputLocationsLabel.textContent = locationLabel;
 
-	list.replaceChildren();
-
 	if ( updateMap ) {
 		map.update( worldPoints, { bbox: state.bbox } );
 	}
-	if ( 'view-map' !== document.body.className ) {
-		renderList( regionPoints, state.page ? parseInt( state.page, 10 ) : 1, id );
+
+	switch ( document.body.className ) {
+		case 'view-list' :
+			list.replaceChildren();
+			renderList( regionPoints, state.page ? parseInt( state.page, 10 ) : 1, id );
+			break;
+		case 'view-heat-calendar' :
+			renderHeatCalendar( regionPoints );
+			break;
+	}
+}
+
+function renderHeatCalendar( points ) {
+	const dayOfYear = new Map;
+	const dayOfWeek = new Map;
+	for ( const point of points ) {
+		const date = new Date( point.properties.date.split( 'T' )[0] );
+		const ofYear = `${ date.getUTCMonth() + 1 }-${ date.getUTCDate() }`;
+		const ofWeek = date.getUTCDay();
+		dayOfYear.set( ofYear, ( dayOfYear.get( ofYear ) ?? 0 ) + 1 );
+		dayOfWeek.set( ofWeek, ( dayOfWeek.get( ofWeek ) ?? 0 ) + 1 );
+	}
+
+	const minWeek = Math.min( ...dayOfWeek.values() );
+	const maxWeek = Math.max( ...dayOfWeek.values() );
+	outputDaysOfWeek.style.setProperty( '--min', minWeek );
+	outputDaysOfWeek.style.setProperty( '--max', maxWeek );
+	for ( let d = 0; d < 7; d++ ) {
+		const count = dayOfWeek.get( d ) ?? 0;
+		if ( count === 0 ) {
+			outputDaysOfWeekCells[d].textContent = '';
+			outputDaysOfWeekCells[d].style.setProperty( '--count', 'unset' );
+		} else {
+			outputDaysOfWeekCells[d].textContent = count.toLocaleString();
+			outputDaysOfWeekCells[d].style.setProperty( '--count', count );
+		}
+	}
+
+	const minYear = Math.min( ...dayOfYear.values() );
+	const maxYear = Math.max( ...dayOfYear.values() );
+	outputDaysOfYear.style.setProperty( '--min', minYear );
+	outputDaysOfYear.style.setProperty( '--max', maxYear );
+	for ( let m = 0; m < 12; m++ ) {
+		for ( let d = 0; d < 31; d++ ) {
+			const count = dayOfYear.get( `${ m + 1}-${ d + 1}` ) ?? 0;
+			if ( count === 0 ) {
+				outputDaysOfYearCells[m]?.[d] && ( outputDaysOfYearCells[m][d].textContent = '' );
+				outputDaysOfYearCells[m]?.[d]?.style?.setProperty( '--count', 'unset' );
+			} else {
+				outputDaysOfYearCells[m]?.[d] && ( outputDaysOfYearCells[m][d].textContent = count.toLocaleString() );
+				outputDaysOfYearCells[m]?.[d]?.style?.setProperty( '--count', count );
+			}
+		}
 	}
 }
 
@@ -747,6 +797,46 @@ const outputVenues = document.getElementById( 'stats-venues' );
 const outputLocations = document.getElementById( 'stats-locations' );
 const outputLocationsLabel = document.getElementById( 'label-locations' );
 
+const outputDaysOfWeek = document.getElementById( 'days-of-week' );
+const outputDaysOfWeekCells = outputDaysOfWeek.querySelectorAll( 'tbody td' );
+const outputDaysOfYear = document.getElementById( 'days-of-year' );
+const outputDaysOfYearBody = outputDaysOfYear.querySelector( 'tbody' );
+const outputDaysOfYearHead = outputDaysOfYear.querySelector( 'thead tr' );
+
+const januaryOne = new Date( '2024-01-01' );
+let monthIndex = -1;
+let dayIndex = -1
+for ( let i = 0; i < 366; i++ ) {
+	const dateIndex = new Date( januaryOne.getTime() + 1000 * 60 * 60 * 24 * i );
+	const thisMonth = dateIndex.getUTCMonth();
+	if ( monthIndex !== thisMonth ) {
+		monthIndex = thisMonth;
+
+		const tr = document.createElement( 'tr' );
+		const thr = document.createElement( 'th' );
+		thr.scope = 'row';
+		thr.textContent = dateIndex.toLocaleString( undefined, { month: 'short', timeZone: 'UTC' } );
+		tr.append( thr );
+		outputDaysOfYearBody.append( tr );
+	}
+
+	const thisDay = dateIndex.getUTCDate();
+	if ( dayIndex !== thisDay ) {
+		dayIndex = thisDay;
+		const td = document.createElement( 'td' );
+		outputDaysOfYearBody.querySelector( 'tr:last-child' ).append( td );
+
+		if ( thisMonth === 0 ) {
+			const thc = document.createElement( 'th' );
+			thc.scope = 'col';
+			thc.textContent = thisDay.toString();
+			outputDaysOfYearHead.append( thc );
+		}
+	}
+}
+
+const outputDaysOfYearCells = [...outputDaysOfYear.querySelectorAll( 'tbody tr' )].map( tr => tr.querySelectorAll( 'td' ) );
+
 const templates = {
 	checkin: document.getElementById( 'checkin-card' ),
 	info: document.getElementById( 'info-card' ),
@@ -770,11 +860,26 @@ map.onViewChanged( ( { bbox } ) => {
 	form.update( { bbox }, { updateMap: false } );
 } );
 map.onResize( () => {
+	const currentView = document.body.className;
+
 	if ( mapContainer.parentElement.id === 'big-map' ) {
+		// If we're going big, we never need to rerender.
+		// Don't call setView(), which:
+		// 1. may cause loop, and
+		// 2. rerenders.
+		// Set the class/last manually.
+		document.body.dataset.lastView = currentView;
 		document.body.className = 'view-map';
-	} else {
-		document.body.className = 'view-list';
+		return;
 	}
+
+	// If we're going small, we always need to rerender.
+	// Still avoid setView(), which might loop.
+	const view = document.body.dataset.lastView ?? 'view-list';
+	document.body.dataset.lastView = currentView;
+	document.body.className = view === 'view-map' ? 'view-list' : view;
+
+	renderPoints( form, { updateMap: false } );
 } );
 
 const statsClick = createStatsClick();
@@ -833,7 +938,34 @@ document.body.addEventListener( 'click', event => {
 		event.target.closest( '.overlaps' ).className = 'overlaps short';
 		return;
 	}
+
+	if ( event.target.matches( '.views button' ) ) {
+		event.preventDefault();
+		setView( event.target.id );
+	}
 } );
+
+function setView( view ) {
+	const currentView = document.body.className;
+
+	if ( view === currentView ) {
+		return;
+	}
+
+	if ( currentView === 'view-map' || view === 'view-map' ) {
+		if ( currentView === 'view-map' ) {
+			document.body.dataset.lastView = view
+		}
+		document.querySelector( '.mdawaffe-ctrl-embiggen' ).click();
+		// Let the embiggen click handler handle everything.
+		return;
+	}
+
+	document.body.dataset.lastView = currentView;
+	document.body.className = view;
+
+	renderPoints( form, { updateMap: false } );
+}
 
 form.addEventListener( 'change', ( event ) => {
 	renderPoints( event.target, event.detail.args );
