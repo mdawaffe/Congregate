@@ -545,7 +545,10 @@ table {
 }
 
 tbody td {
-	background-color: rgb( from forestgreen r g b / calc( 0.1 + 0.8 * ( var( --count ) - var( --min ) ) / ( var( --max ) - var( --min ) ) ) );
+	--scale: calc( ( var( --count ) - var( --min ) ) / ( var( --max ) - var( --min ) ) );
+	--color: oklch( from forestgreen calc( 1 - ( var( --scale ) / 2 ) ) calc( c - .1 * ( 1 - var( --scale ) ) ) h );
+	background-color: var( --color );
+	color: oklch( from var( --color ) calc( round( 1 - L * 0.8 ) ) 0 0 );
 	font-family: monospace;
 	font-size: 1.2em;
 	padding: .25em;
@@ -554,9 +557,10 @@ tbody td {
 #days-of-year {
 	margin-left: calc( 3em - 4px ); /* 4px is the border-spacing doubled? Not clear why */
 	td {
-		height: 1em;
-		width: 1em;
+		height: 1.2em;
+		width: 1.2em;
 		text-align: right;
+		line-height: 1;
 	}
 
 	tbody th {
