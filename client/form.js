@@ -231,7 +231,7 @@ export class Form extends EventTarget {
 	}
 
 	#getValuesArray() {
-		return Array.from( new FormData( this.#form ).entries() ).filter( ( [ key, value ] ) => value.length )
+		return Array.from( new FormData( this.#form ).entries() ).filter( ( [ key, value ] ) => value.length );
 	}
 
 	getState() {
@@ -307,6 +307,8 @@ export class Form extends EventTarget {
 					elements[key].value = value;
 					break;
 			}
+			// We're hydrating this field, so we want to include it in the form data.
+			elements[key].disabled = false;
 		}
 
 		// this.#processForm is called by the reset event handler.
