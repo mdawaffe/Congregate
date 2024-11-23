@@ -631,6 +631,14 @@ tbody td {
 		flex: 1 0 auto;
 		position: relative;
 
+		a {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+		}
+
 		&::before {
 			content: "";
 			background-color: forestgreen;

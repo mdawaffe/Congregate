@@ -352,6 +352,9 @@ export class Form extends EventTarget {
 		this.#form.elements.bbox.value = '';
 		this.#form.elements.source.value = '';
 
+		this.#form.elements.start.parentNode.className = '';
+		this.#form.elements.end.parentNode.className = '';
+
 		// The form is still filled.
 		window.setTimeout( () => {
 			// Now the form is empty.
