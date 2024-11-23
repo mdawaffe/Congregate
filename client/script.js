@@ -620,7 +620,6 @@ function renderHistogram( points, startDateValue, endDateValue ) {
 	const buckets = [];
 	let [ iYear, iMonth ] = ( startDateValue ?? dates[0] ).split( '-' ).map( n => parseInt( n, 10 ) );
 
-
 	while ( iYear < endYear || ( iYear === endYear && iMonth <= endMonth ) ) {
 		buckets.push( `${ iYear }-${ iMonth.toString().padStart( 2, '0' ) }` );
 		iMonth++;
@@ -632,6 +631,9 @@ function renderHistogram( points, startDateValue, endDateValue ) {
 
 	const fragment = document.createDocumentFragment();
 
+	const currentURL = new URL( document.location.href );
+	currentURL.searchParams.delete( 'page' );
+
 	const bucketCounts = new Map;
 	for ( const date of dates ) {
 		const bucket = date.slice( 0, 7 );
@@ -640,13 +642,20 @@ function renderHistogram( points, startDateValue, endDateValue ) {
 	let maxCount = 0;
 	let minCount = Infinity;
 	for ( const bucket of buckets ) {
+		const bucketDate = new Date( `${ bucket }-01` );
+		bucketDate.setUTCMonth( bucketDate.getUTCMonth() + 1, 0 );
 		const count = bucketCounts.get( bucket ) ?? 0;
 		maxCount = Math.max( maxCount, count );
 		minCount = Math.min( minCount, count );
 		const div = document.createElement( 'div' );
 		div.dataset.bucket = bucket;
-		div.textContent = count.toLocaleString();
 		div.style.setProperty( '--count', count );
+		const link = document.createElement( 'a' );
+		currentURL.searchParams.set( 'start', `${ bucket }-01` );
+		currentURL.searchParams.set( 'end', `${ bucketDate.getUTCFullYear() }-${ ( bucketDate.getUTCMonth() + 1 ).toString().padStart( 2, '0' ) }-${ bucketDate.getUTCDate() }` );
+		link.href = currentURL.toString();
+		link.textContent = count.toLocaleString();
+		div.append( link );
 		fragment.append( div );
 	}
 
