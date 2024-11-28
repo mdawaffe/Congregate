@@ -65,9 +65,12 @@ function filteredCheckins( state, checkins ) {
 	const likes = state.likes;
 	const comments = state.comments;
 	const source = state.source;
+	const month = state.month;
+	const date = state.date;
+	const dow = state.dow;
 
 	const filtered = checkins.filter( checkin => {
-		const date = new Date( checkin.properties.date.split( 'T' )[0] );
+		const checkinDate = new Date( checkin.properties.date.split( 'T' )[0] );
 
 		if ( country ) {
 			const checkinCountry = formatCountry( checkin.properties.location?.country );
@@ -117,11 +120,11 @@ function filteredCheckins( state, checkins ) {
 			}
 		}
 
-		if ( start && date < start ) {
+		if ( start && checkinDate < start ) {
 			return false;
 		}
 
-		if ( end && end <= date ) {
+		if ( end && end <= checkinDate ) {
 			return false;
 		}
 
@@ -174,6 +177,18 @@ function filteredCheckins( state, checkins ) {
 		}
 
 		if ( source && checkin.properties.source !== source ) {
+			return false;
+		}
+
+		if ( month.length && checkinDate.getUTCMonth() !== parseInt( month ) ) {
+			return false;
+		}
+
+		if ( date.length && checkinDate.getUTCDate() !== parseInt( date ) ) {
+			return false;
+		}
+
+		if ( dow.length && checkinDate.getUTCDay() !== parseInt( dow ) ) {
 			return false;
 		}
 
@@ -555,6 +570,36 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 }
 
 function renderHeatCalendar( points ) {
+	for ( const colHeader of outputDaysOfYear.querySelectorAll( 'thead th a' ) ) {
+		const currentURL = new URL( document.location.href );
+		if ( colHeader.textContent === ( currentURL.searchParams.get( 'date' ) ?? null ) ) {
+			currentURL.searchParams.delete( 'date' );
+		} else {
+			currentURL.searchParams.set( 'date', colHeader.textContent );
+		}
+		colHeader.href = currentURL.toString();
+	}
+
+	for ( const rowHeader of outputDaysOfYear.querySelectorAll( 'tbody th a' ) ) {
+		const currentURL = new URL( document.location.href );
+		if ( rowHeader.dataset.month === ( currentURL.searchParams.get( 'month' ) ?? null ) ) {
+			currentURL.searchParams.delete( 'month' );
+		} else {
+			currentURL.searchParams.set( 'month', rowHeader.dataset.month );
+		}
+		rowHeader.href = currentURL.toString();
+	}
+
+	for ( const colHeader of outputDaysOfWeek.querySelectorAll( 'thead th a' ) ) {
+		const currentURL = new URL( document.location.href );
+		if ( colHeader.dataset.week === ( currentURL.searchParams.get( 'dow' ) ?? null ) ) {
+			currentURL.searchParams.delete( 'dow' );
+		} else {
+			currentURL.searchParams.set( 'dow', colHeader.dataset.week );
+		}
+		colHeader.href = currentURL.toString();
+	}
+
 	const dayOfYear = new Map;
 	const dayOfWeek = new Map;
 	for ( const point of points ) {
@@ -874,37 +919,46 @@ const outputDaysOfYear = document.getElementById( 'days-of-year' );
 const outputDaysOfYearBody = outputDaysOfYear.querySelector( 'tbody' );
 const outputDaysOfYearHead = outputDaysOfYear.querySelector( 'thead tr' );
 
-const januaryOne = new Date( '2024-01-01' );
-let monthIndex = -1;
-let dayIndex = -1
-for ( let i = 0; i < 366; i++ ) {
-	const dateIndex = new Date( januaryOne.getTime() + 1000 * 60 * 60 * 24 * i );
-	const thisMonth = dateIndex.getUTCMonth();
-	if ( monthIndex !== thisMonth ) {
-		monthIndex = thisMonth;
+function initializeHistogram() {
+	const januaryOne = new Date( '2024-01-01' );
+	let monthIndex = -1;
+	let dayIndex = -1
+	for ( let i = 0; i < 366; i++ ) {
+		const dateIndex = new Date( januaryOne.getTime() + 1000 * 60 * 60 * 24 * i );
+		const thisMonth = dateIndex.getUTCMonth();
+		if ( monthIndex !== thisMonth ) {
+			monthIndex = thisMonth;
 
-		const tr = document.createElement( 'tr' );
-		const thr = document.createElement( 'th' );
-		thr.scope = 'row';
-		thr.textContent = dateIndex.toLocaleString( undefined, { month: 'short', timeZone: 'UTC' } );
-		tr.append( thr );
-		outputDaysOfYearBody.append( tr );
-	}
+			const tr = document.createElement( 'tr' );
+			const thr = document.createElement( 'th' );
+			const link = document.createElement( 'a' );
+			link.textContent = dateIndex.toLocaleString( undefined, { month: 'short', timeZone: 'UTC' } );
+			link.dataset.month = thisMonth;
+			thr.scope = 'row';
+			thr.append( link );
+			tr.append( thr );
+			outputDaysOfYearBody.append( tr );
+		}
 
-	const thisDay = dateIndex.getUTCDate();
-	if ( dayIndex !== thisDay ) {
-		dayIndex = thisDay;
-		const td = document.createElement( 'td' );
-		outputDaysOfYearBody.querySelector( 'tr:last-child' ).append( td );
+		const thisDay = dateIndex.getUTCDate();
+		if ( dayIndex !== thisDay ) {
+			dayIndex = thisDay;
+			const td = document.createElement( 'td' );
+			outputDaysOfYearBody.querySelector( 'tr:last-child' ).append( td );
 
-		if ( thisMonth === 0 ) {
-			const thc = document.createElement( 'th' );
-			thc.scope = 'col';
-			thc.textContent = thisDay.toString();
-			outputDaysOfYearHead.append( thc );
+			if ( thisMonth === 0 ) {
+				const thc = document.createElement( 'th' );
+				const link = document.createElement( 'a' );
+				link.textContent = thisDay.toString();
+				thc.scope = 'col';
+				thc.append( link );
+				outputDaysOfYearHead.append( thc );
+			}
 		}
 	}
 }
+
+initializeHistogram();
 
 const outputDaysOfYearCells = [...outputDaysOfYear.querySelectorAll( 'tbody tr' )].map( tr => tr.querySelectorAll( 'td' ) );
 
@@ -1007,6 +1061,21 @@ document.body.addEventListener( 'click', event => {
 	} else if ( event.target.matches( '.overlaps .long a' ) ) {
 		event.preventDefault();
 		event.target.closest( '.overlaps' ).className = 'overlaps short';
+		return;
+	}
+
+	if ( event.target.matches( '.view-histogram a' ) ) {
+		event.preventDefault();
+		const targetURL = new URL( event.target.href );
+		form.hydrate( targetURL.searchParams );
+		document.body.className = document.body.dataset.lastView ?? 'view-list';
+		return;
+	}
+
+	if ( event.target.matches( '.view-heat-calendar a' ) ) {
+		event.preventDefault();
+		const targetURL = new URL( event.target.href );
+		form.hydrate( targetURL.searchParams );
 		return;
 	}
 

@@ -69,6 +69,9 @@
 				<input type="hidden" name="bbox" value="" />
 				<input type="hidden" name="page" value="" />
 				<input type="hidden" name="source" value="" />
+				<input type="hidden" name="month" value="" />
+				<input type="hidden" name="date" value="" />
+				<input type="hidden" name="dow" value="" />
 				<input type="reset" />
 				<datalist id="dates"></datalist>
 				<datalist id="categories"></datalist>
@@ -115,13 +118,13 @@
 				<table id="days-of-week">
 					<thead>
 						<tr>
-							<th scope="col">Sun</th>
-							<th scope="col">Mon</th>
-							<th scope="col">Tue</th>
-							<th scope="col">Wed</th>
-							<th scope="col">Thu</th>
-							<th scope="col">Fri</th>
-							<th scope="col">Sat</th>
+							<th scope="col"><a data-week="0">Sun</a></th>
+							<th scope="col"><a data-week="1">Mon</a></th>
+							<th scope="col"><a data-week="2">Tue</a></th>
+							<th scope="col"><a data-week="3">Wed</a></th>
+							<th scope="col"><a data-week="4">Thu</a></th>
+							<th scope="col"><a data-week="5">Fri</a></th>
+							<th scope="col"><a data-week="6">Sat</a></th>
 						</tr>
 					</thead>
 					<tbody>

@@ -351,6 +351,9 @@ export class Form extends EventTarget {
 		this.#form.elements.page.value = '';
 		this.#form.elements.bbox.value = '';
 		this.#form.elements.source.value = '';
+		this.#form.elements.month.value = '';
+		this.#form.elements.date.value = '';
+		this.#form.elements.dow.value = '';
 
 		this.#form.elements.start.parentNode.className = '';
 		this.#form.elements.end.parentNode.className = '';
