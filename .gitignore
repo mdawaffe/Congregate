@@ -1,6 +1,7 @@
 .DS_Store
-.access-token
-.oauth
+.access-token*
+.oauth*
+.api-key
 store.*
 overrides.php
 client/map-config.json
