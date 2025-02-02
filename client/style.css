@@ -1,0 +1,468 @@
+html, body {
+	padding: 0;
+	margin: 0;
+	height: 100%;
+	width: 100%;
+}
+
+.view-list #map {
+	opacity: 0; /* display: none would interfere with Leaflet's rendering */
+	pointer-events: none;
+}
+
+.view-map #list {
+	display: none;
+}
+
+nav {
+	box-sizing: border-box;
+	width: 300px;
+	position: absolute;
+	padding: 0.5em;
+
+	display: grid;
+	grid-template-columns: max-content auto;
+	gap: 0.25em 0.5em;
+}
+
+nav form, nav form ul, nav form li, nav output, nav dl {
+	display: contents;
+}
+
+nav form input[type=reset] {
+	grid-column-start: 2;
+}
+
+nav p, nav h2 {
+	grid-column-start: 1;
+	grid-column-end: 3;
+	text-align: center;
+}
+
+nav h2 {
+	margin-top: 0.5em;
+}
+
+nav form h2 {
+	margin-top: 0;
+}
+
+nav p button {
+	font-size: 3em;
+	margin: 0 0.333em;
+}
+
+dd, dt {
+	margin: 0;
+	padding: 0;
+	font-weight: normal;
+}
+
+#map {
+	position: absolute; /* So that #map and #list can share the same space. Could use a grid instead */
+	z-index: 0;
+	height: 100%;
+	margin-left: 300px;
+	width: calc(100% - 300px);
+}
+
+#list {
+	z-index: 1;
+	height: 100%;
+	margin-left: 300px;
+	width: calc(100% - 300px - 1em);
+	padding: 0.5em;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-content: flex-start;
+	gap: 1em;
+}
+
+#list .pages {
+	list-style: none;
+	padding: 0 0 1em 0;
+	margin: -0.5em 0 0 0;
+	width: 100%;
+	max-width: 100%;
+	text-align: center;
+}
+
+#list .pages li {
+	display: inline-block;
+	padding: 0;
+	margin: 0.5em 0.5em;
+	width: 2em;
+	height: 2em;
+	line-height: 2em;
+	border: 1px solid #eee;
+}
+
+#list .pages a {
+	display: inline-block;
+	width: 2em;
+	height: 2em;
+	background-color: #eee;
+	text-decoration: none;
+}
+
+article {
+	width: 310px;
+	padding: 1em;
+	background-color: #eee;
+	border-radius: 0.25em;
+	position: relative;
+	z-index: 0;
+}
+
+h2 {
+	margin: 0;
+	padding: 0;
+	display: flex;
+	font-weight: normal;
+}
+
+h2 a {
+	font-weight: bold;
+}
+
+h2 span {
+	flex: 1 1 auto;
+}
+h2 span::before {
+	flex: 0 0 auto;
+}
+
+.categories {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: -1;
+}
+
+.categories img {
+	filter: invert(.5) opacity(.1);
+	transform: translate(30%, 30%) scale(2);
+}
+
+.sticker {
+	flex: 0 0 auto;
+}
+
+.private::before {
+	content: "\1F512";
+}
+
+.mayor::before {
+	content: "\1F451";
+}
+
+.location {
+	margin: 0;
+	padding: 0;
+
+	summary {
+		list-style-type: none;
+
+		span {
+			display: block;
+			margin-inline-start: 20px;
+			margin-block-start: -20px;
+		}
+
+		&::before {
+			content: "\25B6\FE0F\00A0";
+		}
+	}
+
+	&[open] {
+		summary {
+			span {
+				display: none;
+			}
+
+			&::before {
+				content: "\1F53D\00A0";
+			}
+		}
+	}
+
+	p {
+		white-space-collapse: preserve-breaks;
+		margin: 0;
+		margin-inline-start: 20px;
+		margin-block-start: -20px;
+	}
+}
+
+time {
+	display: block;
+	margin: 0;
+	padding: 0;
+
+	&.missed::after {
+		content: " \23F0";
+	}
+}
+
+.photos img {
+	object-fit: cover;
+}
+
+.photos {
+	margin: 1em 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: flex-start;
+	align-content: center;
+	gap: 0.5em;
+	flex: 0 0 auto;
+}
+
+.photos a, .overlap-photos a {
+	display: block;
+	line-height: 0;
+}
+
+blockquote {
+	margin: 1em 0;
+	padding: 0;
+}
+
+blockquote, q {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+blockquote::before {
+	content: "\1F4AC";
+	display: inline-block;
+	margin-right: 0.25em;
+}
+
+.unlocked-stickers {
+	margin: 1em 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	grid-template-columns: min-content min-content 1fr;
+	gap: 0.25em;
+
+	li {
+		display: contents;
+	}
+}
+
+.likes, .event, .overlaps p {
+	margin: 0.5em 0;
+	padding: 0;
+}
+
+.leaflet-popup-content .likes,
+.leaflet-popup-content .event,
+.leaflet-popup-content .overlaps p {
+	margin: 1em 0;
+	padding: 0;
+}
+
+.overlaps .short {
+	list-style: none;
+	margin: 0 0 0 1.25em;
+	padding: 0;
+	line-height: 0;
+	display: grid;
+	grid-template-columns: repeat( auto-fit, calc( 25px + 0.5em ) );
+	align-items: center;
+	justify-items: center;
+}
+
+.overlaps .short li {
+	display: inline-block;
+	margin: 0.25em 0.25em;
+}
+
+.overlaps .short li:last-of-type {
+	display: contents;
+}
+
+.overlaps .expand, .overlaps .collapse {
+	display: inline-block;
+	text-decoration: none;
+}
+
+.overlaps .collapse {
+	margin-left: -50px;
+}
+
+.overlaps.short .long {
+	display: none;
+}
+
+.overlaps.long .short {
+	display: none;
+}
+
+.overlap-photos {
+	margin: 0 0.5em;
+	padding: 0;
+	list-style: none;
+	text-align: center;
+}
+
+.likes::before {
+	content: "\2764\FE0F";
+	display: inline-block;
+	margin-right: 0.25em;
+}
+
+.event::before {
+	content: "\1F39F";
+	display: inline-block;
+	margin-right: 0.25em;
+}
+
+.overlaps p::before {
+	content: "\1F44B";
+	display: inline-block;
+	margin-right: 0.25em;
+}
+
+.comments, .overlaps .long {
+	margin: 0 0 1em 50px;
+	padding: 0;
+	list-style: none;
+}
+
+.overlaps .long {
+	margin: 0 0 0 calc( 1.5em + 50px );
+}
+
+.comments li, .overlaps .long .overlap {
+	margin: 1em 0 0 0;
+	min-height: 50px;
+}
+
+.comments img, .overlaps .long .author-photo {
+	margin-left: -50px;
+	float: left;
+}
+
+.comments .author, .overlaps .long .author {
+	float: left;
+	margin: 0 0 0.5em 0.5em;
+	line-height: 1;
+}
+
+.comments time, .overlaps .long time {
+	display: inline;
+	float: right;
+	margin: 0 0.5em 0.5em 0;
+	line-height: 1;
+}
+
+.comments q, .overlaps .long q {
+	display: block;
+	clear: right;
+	margin: 0.5em 0.5em;
+	padding: 0;
+}
+
+.posts {
+	margin: 0 0 1em 0;
+	padding: 0.5em 0 0 0;
+	list-style: none;
+	border-top: 1px solid #ddd;
+	display: grid;
+	grid-template: auto / 16px 1fr max-content;
+	gap: 0.25em 1em;
+}
+
+.posts li {
+	display: contents;
+}
+
+.posts q {
+	display: block;
+	grid-column-start: 2;
+	grid-column-end: span 2;
+	margin-bottom: 0.5em;
+}
+
+q::before, q::after {
+	content: "";
+}
+
+.scores {
+	margin: 0.5em 0;
+}
+
+.scores summary {
+	list-style-type: none;
+}
+
+.scores summary::before {
+	content: "\25B6\FE0F\00A0";
+}
+.scores[open] summary::before {
+	content: "\1F53D\00A0";
+}
+
+.scores ul {
+	margin: 0.5em 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	grid-template: auto / 16px 1fr max-content;
+	gap: 0.25em 1em;
+}
+
+.scores li {
+	display: contents;
+}
+
+dialog {
+	box-shadow: 2px 2px 5px 0px #333;
+	border: 1px solid #333;
+	padding: 1em;
+	max-height: 60%;
+	max-width: 60%;
+}
+
+dialog header {
+	display: grid;
+	grid-template: auto / 1fr 1fr;
+	justify-content: space-between;
+}
+
+dialog header button {
+	grid-column: 2;
+	width: max-content;
+	justify-self: end;
+}
+
+dialog h3 {
+	margin: 0;
+}
+
+dialog dl {
+	margin: 1em 0 0 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: max-content max-content;
+	gap: .5em .5em;
+}
+
+dialog dt button {
+	margin-left: 1em;
+	float: right;
+}
+
+.view-map dialog h3 {
+	display: none;
+}

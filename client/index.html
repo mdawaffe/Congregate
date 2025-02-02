@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>FourSquare Checkins</title>
+		<meta name="referrer" content="no-referrer" />
+
+		<link rel="preload" href="./checkins.geo.json" as="fetch" crossorigin />
+
+		<link rel="stylesheet" href="./style.css" />
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+			integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+			crossorigin=""
+		/>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.1/dist/MarkerCluster.css"
+			crossorigin=""
+		/>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.1/dist/MarkerCluster.Default.css"
+			crossorigin=""
+		/>
+
+		<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+			integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+			crossorigin=""
+			defer
+		></script>
+		<script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js"
+			crossorigin=""
+			defer
+		></script>
+			
+		<script src="./script.js" defer></script>
+	</head>
+	<body class="view-list">
+		<nav>
+			<form>
+				<h2>Filter</h2>
+				<ul>
+					<li><label for="venue">Venue</label> <input type="search" name="venue" id="venue" /></li>
+					<li><label for="start">Start</label> <input type="date" name="start" id="start" /></li>
+					<li><label for="end">End</label> <input type="date" name="end" id="end" /></li>
+					<li><label for="category">Category</label> <input type="search" name="category" id="category" list="categories" /></li>
+					<li><label for="sticker">Sticker</label> <input type="search" name="sticker" id="sticker" list="stickers" /></li>
+					<li><label for="country">Country</label> <input type="search" name="country" id="country" list="countries" /></li>
+					<li><label for="state">State</label> <input type="search" name="state" id="state" list="states" disabled /></li>
+					<li><label for="city">City</label> <input type="search" name="city" id="city" disabled /></li>
+					<li><label for="missed">Missed?</label> <input type="checkbox" name="missed" id="missed" value="1" /></li>
+					<li><label for="private">Private?</label> <input type="checkbox" name="private" id="private" value="1" /></li>
+					<li><label for="event">Event?</label> <input type="checkbox" name="event" id="event" value="1" /></li>
+					<li><label for="overlaps">Overlaps?</label> <input type="checkbox" name="overlaps" id="overlaps" value="1" /></li>
+					<li><label for="mayor">Became Mayor?</label> <input type="checkbox" name="mayor" id="mayor" value="1" /></li>
+					<li><label for="unlocked-sticker">Unlocked Sticker?</label> <input type="checkbox" name="unlocked-sticker" id="unlocked-sticker" value="1" /></li>
+					<li><label for="photos">Photos?</label> <input type="checkbox" name="photos" id="photos" value="1" /></li>
+					<li><label for="posts">Linked Posts?</label> <input type="checkbox" name="posts" id="posts" value="1" /></li>
+					<li><label for="likes">Likes?</label> <input type="checkbox" name="likes" id="likes" value="1" /></li>
+					<li><label for="comments">Comments?</label> <input type="checkbox" name="comments" id="comments" value="1" /></li>
+				</ul>
+				<input type="reset" />
+				<datalist id="categories"></datalist>
+				<datalist id="stickers"></datalist>
+				<datalist id="countries"></datalist>
+				<datalist id="states"></datalist>
+			</form>
+			<output>
+				<h2>Stats</h2>
+				<dl>
+					<dt>Checkins</dt>
+					<dd id="stats-checkins">0</dd>
+					<dt>Venues</dt>
+					<dd id="stats-venues">0</dd>
+					<dt id="label-locations">Countries</dt>
+					<dd><a href="#" id="stats-locations">0</a></dd>
+				</dl>
+			</output>
+			<h2>View</h2>
+			<p>
+				<button id="view-list">📄</button>
+				<button id="view-map">🗺</button>
+			</p>
+		</nav>
+		<div id="map"></div>
+		<div id="list"></div>
+		<dialog id="info" popover="auto"></dialog>
+		<dialog id="stats" popover="auto"></dialog>
+		<template id="checkin-card">
+			<h2>
+				<span><a></a></span>
+				<img width="30" height="30" loading="lazy" class="sticker" />
+			</h2>
+			<ul class="categories">
+				<li><img width="60" height="60" loading="lazy" />
+			</ul>
+			<details class="location">
+				<summary><span></span></summary>
+				<p></p>
+			</details>
+			<time></time>
+			<p class="event"></p>
+			<ul class="photos">
+				<li><a target="_blank"><img width="150" height="150" loading="lazy" /></a></li>
+			</ul>
+			<blockquote></blockquote>
+			<ul class="unlocked-stickers">
+				<li>
+					<b>🏆</b>
+					<img width="30" height="30" loading="lazy" class="sticker" />
+					<span></span>
+				</li>
+			</ul>
+			<div class="overlaps short">
+				<p></p>
+				<ul class="short">
+					<li class="overlap"><img width="25" height="25" loading="lazy" /></li>
+					<li><a class="expand" href="#">➡️</a></li>
+				</ul>
+				<ul class="long">
+					<li><a class="collapse" href="#">⬅️</a></li>
+					<li class="overlap">
+						<img class="author-photo" width="50" height="50" loading="lazy" /><span class="author"></span><time></time>
+						<q></q>
+						<ul class="overlap-photos">
+							<li><a target="_blank"><img width="150" height="150" loading="lazy"/></a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+			<p class="likes"></p>
+			<ol class="comments">
+				<li>
+					<img class="author-photo" width="50" height="50" loading="lazy" /><span class="author"></span><time></time>
+					<q></q>
+				</li>
+			</ol>
+			<details class="scores">
+				<summary>Coins: <span></span></summary>
+				<ul>
+					<li>
+						<img width="16" height="16" loading="lazy" />
+						<q></q>
+						<span></span>
+					</li>
+				</ul>
+			</details>
+			<ul class="posts">
+				<li>
+					<img width="16" height="16" loading="lazy" /> <a target="_blank" class="source"></a><time></time>
+					<q><a target="_blank"></a></q>
+				</li>
+			</ul>
+		</template>
+		<template id="info-card">
+			<header>
+				<h3><a class="url-checkin" target="_blank" href="/?id=">View on Map</a></h3>
+				<button class="close" popovertarget="info" popovertargetaction="hide">X</button>
+			</header>
+			<dl>
+				<dt>Visited</dt>
+				<dd><span class="count count-visited"></span></dd>
+				<dt>
+					Checkin
+					<button class="clipboard clipboard-checkin">&#x1F4CB;</button>
+				</dt>
+				<dd>
+					<a class="url-swarm url-swarm-checkin" target="_blank" href="https://www.swarmapp.com/checkin/">Swarm</a>
+				</dd>
+				<dt>
+					Venue
+					<button class="clipboard clipboard-venue">&#x1F4CB;</button>
+				</dt>
+				<dd>
+					<a class="url-foursquare url-foursquare-venue" target="_blank" href="https://foursquare.com/v/">Foursquare</a>
+				</dd>
+				<dt>Users</dt>
+				<dd class="count count-users"></dd>
+				<dt>Checkins</dt>
+				<dd class="count count-checkins"></dd>
+			</dl>
+		</template>
+		<template id="stats-card">
+			<header>
+				<button class="close" popovertarget="stats" popovertargetaction="hide">X</button>
+			</header>
+			<dl>
+			</dl>
+		</template>
+	</body>
+</html>
