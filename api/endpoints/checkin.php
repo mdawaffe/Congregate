@@ -61,6 +61,11 @@ class Checkin extends Item_List {
 			'alt' => $altitude,
 			'llAcc' => $ll_accuracy,
 			'altAcc' => $altitude_accuracy,
+			'broadcast' => 'public', // CSV: private, public, facebook, twitter, followers (celebrity mode users only)
+			// 'stickerId' => '', // Sticker ID
+			// 'hasPhoto' => null, // null or 1. Tells Swarm to prepare for incoming photos? Not sure what it's useful for.
+			// 'totalPhotoCount' => null // ?int. ^^^^?
+			// 'broadcastLater' => null // null or 1. Tells Swarm not to submit to socials (or friends' swarm feeds?) until photos are submitted. I think.
 			// 'mentions' => '',
 			/*
 			 * Mentions in your check-in. This parameter is a semicolon-delimited list of mentions. A single mention is
