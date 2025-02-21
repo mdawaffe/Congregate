@@ -359,6 +359,10 @@ function build( $source_files = null ) {
 	//	'You just stole the mayorship!' => true, // caught by another test
 	];
 
+	$missed_checkin_messages = [
+		'What\'s that old saying? "If you didn\'t check in on Swarm, did it even happen?" Well you were here, and now it\'s official.' => true,
+	];
+
 	fwrite( $f, "[\n" );
 
 	foreach ( $checkin_basenames as $checkin_basename ) {
@@ -486,7 +490,15 @@ function build( $source_files = null ) {
 		$state = format_state( $venue['location']['state'] ?? $checkin['venue']['location']['state'] ?? null, $country_name );
 
 		$total_score = $checkin['score']['total'] ?? 0;
-		$missed = 1 === $total_score && 'https://ss1.4sqi.net/img/points/coin_icon_clock.png' === ( $checkin['score']['scores'][0]['icon'] ?? '' );
+		$missed = false;
+		if ( $total_score > 0 ) {
+			foreach ( $checkin['score']['scores'] ?? [] as $score ) {
+				if ( isset( $missed_checkin_messages[ $score['message'] ] ) ) {
+					$missed = true;
+					break;
+				}
+			}
+		}
 
 		$properties = [
 			'id' => $checkin['id'],
