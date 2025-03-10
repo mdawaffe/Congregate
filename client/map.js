@@ -1,4 +1,8 @@
-const style = 'https://tiles.openfreemap.org/styles/bright';
+const isDarkMode = window.matchMedia( '( prefers-color-scheme: dark )' ).matches;
+
+const style = isDarkMode
+	? 'https://tiles.openfreemap.org/styles/fiord'
+	: 'https://tiles.openfreemap.org/styles/bright';
 
 const transparent = document.createElement( 'img' );
 transparent.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";

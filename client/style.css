@@ -1,3 +1,7 @@
+:root {
+	color-scheme: light dark;
+}
+
 html, body {
 	padding: 0;
 	margin: 0;
@@ -54,19 +58,19 @@ nav form fieldset {
 		border-radius: 1em;
 		padding: 0.25em .5em;
 		margin-block: .1em;
-		background-color: rgb( from royalblue r g b / 0.1 );
+		background-color: light-dark(rgb(from royalblue r g b / 0.1), rgb(from dodgerblue r g b / 0.3));
 
 		&:hover {
-			background-color: rgb( from royalblue r g b / 0.2 );
-			border-color: rgb( from royalblue r g b / 0.2 );
+			background-color: light-dark(rgb(from royalblue r g b / 0.2), rgb(from dodgerblue r g b / 0.4));
+			border-color: light-dark(rgb(from royalblue r g b / 0.2), rgb(from dodgerblue r g b / 0.4));
 		}
 
 		&:has( + input:checked ) {
-			background-color: royalblue;
+			background-color: light-dark( royalblue, dodgerblue );
 			color: #fff;
 
 			&:hover {
-				background-color: rgb( from royalblue r g b / 0.9 );
+				background-color: light-dark(rgb(from royalblue r g b / 0.9), rgb(from dodgerblue r g b / 0.8));
 			}
 		}
 	}
@@ -158,27 +162,30 @@ dd, dt {
 	width: 2em;
 	height: 2em;
 	line-height: 2em;
-	border: 1px solid #eee;
+	border: 1px solid light-dark(#eee, #333);
 }
 
 #list .pages a {
 	display: inline-block;
 	width: 2em;
 	height: 2em;
-	background-color: #eee;
+	background-color: light-dark(#eee, #333);
 	text-decoration: none;
 }
 
 article {
 	width: 310px;
 	padding: 1em;
-	background-color: #eee;
+	background-color: light-dark(#eee, #333);
 	border-radius: 0.25em;
 	position: relative;
 	z-index: 0;
 
 	&.push-only {
-		background-color: #ffb;
+		background-color: light-dark(
+			rgb( from yellow r g b / 0.4 ),
+			rgb( from yellow r g b / 0.3 )
+		);
 	}
 }
 
@@ -225,7 +232,7 @@ h2 span::before {
 	}
 
 	img {
-		filter: invert(.5) opacity(.1);
+		filter: invert(.5) opacity(.2);
 		transform: translate(30%, 30%) scale(2);
 	}
 }
@@ -458,7 +465,7 @@ blockquote::before {
 	margin: 0 0 1em 0;
 	padding: 0.5em 0 0 0;
 	list-style: none;
-	border-top: 1px solid #ddd;
+	border-top: 1px solid light-dark(#ddd, #444);
 	display: grid;
 	grid-template: auto / 16px 1fr max-content;
 	gap: 0.25em 1em;
@@ -497,8 +504,8 @@ q::before, q::after {
 }
 
 dialog {
-	box-shadow: 2px 2px 5px 0px #333;
-	border: 1px solid #333;
+	box-shadow: 2px 2px 5px 0px light-dark(#333, #000);
+	border: 1px solid light-dark(#333, #000);
 	padding: 1em;
 	max-height: 60%;
 	max-width: 60%;
@@ -553,7 +560,10 @@ table {
 
 tbody td {
 	--scale: calc( ( var( --count ) - var( --min ) ) / ( var( --max ) - var( --min ) ) );
-	--color: oklch( from forestgreen calc( 1 - ( var( --scale ) / 2 ) ) calc( c - .1 * ( 1 - var( --scale ) ) ) h );
+	--color: light-dark(
+		oklch( from forestgreen calc( 1 - ( var( --scale ) / 2 ) ) calc( c - .1 * ( 1 - var( --scale ) ) ) h ),
+		oklch( from forestgreen calc( 0.3 + var( --scale ) / 2 ) calc( c + .1 * var( --scale ) ) h )
+	);
 	background-color: var( --color );
 	color: oklch( from var( --color ) calc( round( 1 - L * 0.8 ) ) 0 0 );
 	font-family: monospace;
@@ -611,7 +621,6 @@ tbody td {
 	height: 500px;
 	box-sizing: border-box;
 	margin: 1em 0 0 4em;
-	border-color: black;
 	border-style: solid;
 	border-width: 0 0 1px 1px;
 	position: relative;
@@ -652,7 +661,7 @@ tbody td {
 
 		&:hover::before {
 			background-color: orange;
-			outline: 1px solid black;
+			outline: 1px solid;
 		}
 
 		&:hover::after {
