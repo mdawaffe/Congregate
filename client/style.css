@@ -50,12 +50,13 @@ nav form fieldset {
 	padding: 0;
 	border: 0;
 	grid-column: span 2;
+	font-size: 1.5em;
 
 	label {
 		display: inline-block;
-		line-height: 1em;
+		line-height: .8em;
 		border: 1px solid transparent;
-		border-radius: 1em;
+		border-radius: .25em;
 		padding: 0.25em .5em;
 		margin-block: .1em;
 		background-color: light-dark(rgb(from royalblue r g b / 0.1), rgb(from dodgerblue r g b / 0.3));
@@ -329,7 +330,7 @@ blockquote, q {
 }
 
 blockquote::before {
-	content: "\1F4AC";
+	content: "\1F5E3";
 	display: inline-block;
 	margin-right: 0.25em;
 }
