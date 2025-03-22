@@ -51,13 +51,13 @@ function filteredCheckins( state, checkins ) {
 	const end = state.endAsNumber ? state.endAsNumber + 24 * 60 * 60 * 1000 : null;
 	const category = state.category;
 	const sticker = state.sticker.replace( /[^\x00-xFF]/g, '' ).trim();
+	const overlap = state.overlap;
 	const country = state.country.replace( /\p{Regional_Indicator}/ug, '' ).trim();
 	const province = state.state;
 	const city = normalize( state.city );
 	const missed = state.missed;
 	const isPrivate = state.private;
 	const event = state.event;
-	const overlaps = state.overlaps;
 	const becameMayor = state.mayor;
 	const unlockedSticker = state['unlocked-sticker'];
 	const photos = state.photos;
@@ -148,8 +148,14 @@ function filteredCheckins( state, checkins ) {
 			return false;
 		}
 
-		if ( overlaps && ! checkin.properties.overlaps.count ) {
-			return false;
+		if ( overlap ) {
+			if ( '-- Any --' === overlap ) {
+				if ( checkin.properties.overlaps.count < 1 ) {
+					return false;
+				}
+			} else if ( ! checkin.properties.overlaps.items.map( item => item.author.name ).includes( overlap ) ) {
+				return false;
+			}
 		}
 
 		if ( becameMayor && ! checkin.properties.became_mayor ) {

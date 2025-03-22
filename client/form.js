@@ -47,12 +47,18 @@ export class Form extends EventTarget {
 		const countries = this.#countries;
 		const categories = new Set;
 		const stickerMap = new Map;
+		const overlapMap = new Set( [ '-- Any --' ] ); // Ugly
 		for ( const checkin of checkins ) {
 			checkin.properties.categories.forEach( category => categories.add( category.name ) );
 			const countryID = checkin.properties.location?.country?.id ?? null;
 			countries.set( formatCountry( checkin.properties.location?.country ), countryID );
 			if ( checkin.properties.sticker ) {
 				stickerMap.set( checkin.properties.sticker.name, checkin.properties.sticker.emoji );
+			}
+			if ( checkin.properties.overlaps.count > 0 ) {
+				for ( const overlap of checkin.properties.overlaps.items ) {
+					overlapMap.add( overlap.author.name );
+				}
 			}
 		}
 
@@ -75,6 +81,13 @@ export class Form extends EventTarget {
 			const option = document.createElement( 'option' );
 			option.value = `${emoji} ${name}`;
 			stickerList.appendChild( option );
+		}
+
+		const overlapList = this.#form.querySelector( '#overlaps' );
+		for ( const name of Array.from( overlapMap.values() ).sort( ( a, b ) => a.localeCompare( b ) ) ) {
+			const option = document.createElement( 'option' );
+			option.value = name;
+			overlapList.appendChild( option );
 		}
 	}
 

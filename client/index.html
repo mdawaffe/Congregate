@@ -49,6 +49,7 @@
 					<li><label for="end">End <a>➡️</a></label> <input type="date" name="end" id="end" /></li>
 					<li><label for="category">Category</label> <input type="search" name="category" id="category" list="categories" /></li>
 					<li><label for="sticker">Sticker</label> <input type="search" name="sticker" id="sticker" list="stickers" /></li>
+					<li><label for="overlap">With</label> <input type="search" name="overlap" id="overlap" list="overlaps" /></li>
 					<li><label for="country">Country</label> <input type="search" name="country" id="country" list="countries" /></li>
 					<li><label for="state">State</label> <input type="search" name="state" id="state" list="states" disabled /></li>
 					<li><label for="city">City</label> <input type="search" name="city" id="city" disabled /></li>
@@ -57,7 +58,6 @@
 					<label for="missed">Missed?</label> <input type="checkbox" name="missed" id="missed" value="1" />
 					<label for="private">Private?</label> <input type="checkbox" name="private" id="private" value="1" />
 					<label for="event">Event?</label> <input type="checkbox" name="event" id="event" value="1" />
-					<label for="overlaps">Overlaps?</label> <input type="checkbox" name="overlaps" id="overlaps" value="1" />
 					<label for="mayor">Became Mayor?</label> <input type="checkbox" name="mayor" id="mayor" value="1" />
 					<label for="unlocked-sticker">Unlocked Sticker?</label> <input type="checkbox" name="unlocked-sticker" id="unlocked-sticker" value="1" />
 					<label for="photos">Photos?</label> <input type="checkbox" name="photos" id="photos" value="1" />
@@ -76,6 +76,7 @@
 				<datalist id="dates"></datalist>
 				<datalist id="categories"></datalist>
 				<datalist id="stickers"></datalist>
+				<datalist id="overlaps"></datalist>
 				<datalist id="countries"></datalist>
 				<datalist id="states"></datalist>
 			</form>
