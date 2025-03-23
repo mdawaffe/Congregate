@@ -6,13 +6,17 @@ import {
 	formatDate,
 } from './formatting.js';
 
-function forEvent( object, eventName ) {
+function forReady() {
 	return new Promise( resolve => {
-		const resolveEvent = function( event ) {
-			object.removeEventListener( eventName, resolveEvent );
-			resolve( event );
+		if ( document.readyState !== 'loading' ) {
+			return resolve();
 		}
-		object.addEventListener( eventName, resolveEvent );
+
+		const resolveEvent = function( event ) {
+			document.removeEventListener( 'DOMContentLoaded', resolveEvent );
+			resolve();
+		}
+		document.addEventListener( 'DOMContentLoaded', resolveEvent );
 	} );
 }
 
@@ -909,7 +913,7 @@ function createInfoClick() {
 }
 
 
-await forEvent( window, 'DOMContentLoaded' );
+await forReady();
 
 const checkinsRequest = await fetch( './checkins/checkins.geo.json' );
 const checkins = await checkinsRequest.json();
