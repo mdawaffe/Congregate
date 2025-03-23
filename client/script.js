@@ -498,8 +498,6 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 		const states = new Map;
 
 		for ( const checkin of regionPoints ) {
-			addVenue( checkin );
-
 			const checkinCountry = formatCountry( checkin.properties.location?.country );
 			if ( checkinCountry === country && stateList.dataset.country !== country ) {
 				if ( checkin.properties.location.state ) {
@@ -537,6 +535,10 @@ function renderPoints( form, { id = false, updateMap = true } = {} ) {
 			locationSource = 'state';
 			locationLabel = 'States';
 			locationParameter = 'state';
+		}
+
+		for ( const checkin of regionPoints ) {
+			addVenue( checkin );
 		}
 	} else {
 		for ( const checkin of regionPoints ) {
