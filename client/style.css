@@ -315,26 +315,26 @@ summary {
 	margin: 0;
 	padding: 0;
 	display: inline-block;
-	vertical-align: top;
 
 	summary {
 		display: inline-block;
-		vertical-align: top;
 		span {
 			display: inline-block;
-			vertical-align: top;
 
 			[open] & {
 				display: none;
 			}
 		}
-	}
 
-	p {
-		display: inline-block;
-		vertical-align: top;
-		white-space-collapse: preserve-breaks;
-		margin: 0;
+		p {
+			display: none;
+			white-space-collapse: preserve-breaks;
+			margin: 0;
+
+			[open] & {
+				display: inline-block;
+			}
+		}
 	}
 }
 
