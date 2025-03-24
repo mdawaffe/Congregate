@@ -113,12 +113,8 @@ nav details, nav h2, nav p {
 
 nav summary {
 	list-style: none;
-	&::marker, [open] &::marker, &::-webkit-details-marker, [open] &::-webkit-details-marker {
-		display: none;
-	}
-
-	&::before {
-		display: none;
+	&::marker, [open] &::marker {
+		content: "";
 	}
 }
 
@@ -128,7 +124,6 @@ nav h2 {
 
 nav form h2 {
 	margin-top: 0;
-	display: inline-block;
 }
 
 nav p {
@@ -284,18 +279,7 @@ summary {
 		cursor: pointer;
 	}
 
-	&::-webkit-details-marker {
-		display: none;
-	}
-	&::before {
-		content: "\25B6\FE0F\00A0";
-		line-height: 1;
-	}
-	[open] &::before {
-		content: "\1F53D\00A0";
-	}
-
-	[open] &::marker, [open] &::-webkit-details-marker {
+	[open] &::marker {
 		content: "\1F53D\00A0";
 	}
 }
@@ -309,7 +293,7 @@ summary {
 	summary {
 		span {
 			display: block;
-			margin-inline-start: calc( 20px + 0.25em );
+			margin-inline-start: 20px;
 			margin-block-start: -20px;
 
 			[open] & {
@@ -321,7 +305,7 @@ summary {
 	p {
 		white-space-collapse: preserve-breaks;
 		margin: 0;
-		margin-inline-start: calc( 20px + 0.25em );
+		margin-inline-start: 20px;
 		margin-block-start: -20px;
 	}
 }
