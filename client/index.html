@@ -4,6 +4,7 @@
 		<meta charset="utf-8" />
 		<title>Congregate</title>
 		<meta name="referrer" content="no-referrer" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
 
 		<link rel="preload" href="./checkins/checkins.geo.json"
 			as="fetch"
@@ -41,7 +42,9 @@
 	<body class="view-list">
 		<nav>
 			<form>
-				<h2>Filter</h2>
+				<details>
+					<summary><h2>Filter</h2></summary>
+				</details>
 				<ul>
 					<li><label for="venue">Venue</label> <input type="search" name="venue" id="venue" /></li>
 					<li><label for="text">Text</label> <input type="search" name="text" id="text" /></li>
@@ -100,13 +103,15 @@
 					<dd><a href="#" id="stats-locations">0</a></dd>
 				</dl>
 			</output>
-			<h2>View</h2>
-			<p class="views">
-				<button id="view-list">📄</button>
-				<button id="view-map">🗺</button>
-				<button id="view-heat-calendar">🗓️</button>
-				<button id="view-histogram">📊</button>
-			</p>
+			<div class="views">
+				<h2>View</h2>
+				<p>
+					<button id="view-list">📄</button>
+					<button id="view-map">🗺</button>
+					<button id="view-heat-calendar">🗓️</button>
+					<button id="view-histogram">📊</button>
+				</p>
+			</div>
 		</nav>
 		<div class="view">
 			<div id="big-map"></div>
